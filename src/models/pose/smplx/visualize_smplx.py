@@ -52,8 +52,7 @@ def plot_detection_timeline(data, output_path=None):
     # Detection statistics (rolling window)
     window = int(fps * 2)  # 2-second window
     if window < len(detected):
-        rolling_detection = np.convolve(detected.astype(float), 
-                                       np.ones(window)/window, mode='valid')
+        rolling_detection = np.convolve(detected.astype(float), np.ones(window)/window, mode='valid')
         rolling_time = time[:len(rolling_detection)]
         axes[2].plot(rolling_time, rolling_detection * 100)
         axes[2].set_ylabel('Detection Rate (%)')
