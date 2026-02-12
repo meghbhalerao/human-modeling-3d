@@ -1,0 +1,25 @@
+# Visualization Configuration
+input_path: /home/mb230/projects/human-modeling-3d/data/TOY/processed/processed_part008.json
+output_path: "output_viz.mp4"
+
+render:
+  fps: 20
+  radius: 0.8  # Correct for normalized data
+
+style:
+  chain_colors: 
+    - "#4D84AA" 
+    - "#DD5A37" 
+    - "#D69E00" 
+    - "#B75A39" 
+    - "#FF6D00" 
+
+defaults:  
+  - _self_
+  - override hydra/hydra_logging: disabled  
+  - override hydra/job_logging: disabled  
+
+hydra:  
+  run:  
+    dir: .
+  output_subdir: null

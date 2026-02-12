@@ -1,114 +1,123 @@
 import json
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation, FFMpegWriter
-import sys
-from pathlib import Path
+import mpl_toolkits.mplot3d.axes3d as p3
+import os
+import shutil
+import cv2
+import hydra
+from omegaconf import DictConfig
 
 class SkeletonPlayer:
-    """
-    A 3D skeleton renderer for SMPL and MANO data.
-    """
-    # Kinematic trees: defines which joint connects to which parent
-    SMPL_PARENT = [-1, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9, 12, 13, 14, 16, 17, 18, 19, 20, 21]
-    MANO_PARENT = [-1, 0, 1, 2, 0, 4, 5, 0, 7, 8, 0, 10, 11, 0, 13, 14]
+    # SMPL Chains
+    SMPL_CHAINS = [
+        [0, 3, 6, 9, 12, 15],       # Torso
+        [9, 14, 17, 19, 21],        # R Arm
+        [9, 13, 16, 18, 20],        # L Arm
+        [0, 2, 5, 8, 11],           # R Leg
+        [0, 1, 4, 7, 10]            # L Leg
+    ]
 
-    def __init__(self, json_path):
-        self.json_path = Path(json_path)
-        self.data = self._load_data()
+    def __init__(self, cfg: DictConfig):
+        self.cfg = cfg
+        print(f"Loading: {cfg.input_path}")
+        with open(cfg.input_path, 'r') as f:
+            self.data = json.load(f)
         self.frames = self.data.get('frames', [])
-        
-    def _load_data(self):
-        if not self.json_path.exists():
-            raise FileNotFoundError(f"Could not find JSON at {self.json_path}")
-        with open(self.json_path, 'r') as f:
-            return json.load(f)
 
-    def _draw_bones(self, ax, joints, parents, color):
-        """Helper to draw line segments between parent and child joints."""
-        if joints is None:
+    def render(self):
+        # 1. Output Setup
+        output_dir = "final_frames"
+        if os.path.exists(output_dir):
+            shutil.rmtree(output_dir)
+        os.makedirs(output_dir)
+
+        # 2. Filter & Process Data
+        # We only want frames that have data
+        valid_frames = []
+        for i, f in enumerate(self.frames):
+            if f.get('smpl_body') and f['smpl_body'].get('positions'):
+                p = np.array(f['smpl_body']['positions'])
+                # Filter out empty/zero frames
+                if np.max(np.abs(p)) > 0.01:
+                    valid_frames.append(p)
+        
+        if not valid_frames:
+            print("ERROR: No valid frames found.")
             return
+
+        print(f"Found {len(valid_frames)} valid frames.")
         
-        pts = np.array(joints)
-        for i, p in enumerate(parents):
-            if p != -1 and i < len(pts):
-                # ax.plot(x_values, y_values, z_values)
-                ax.plot(
-                    [pts[p, 0], pts[i, 0]],
-                    [pts[p, 1], pts[i, 1]],
-                    [pts[p, 2], pts[i, 2]],
-                    color=color, linewidth=2, alpha=0.8
-                )
-        # Add joints as dots
-        ax.scatter(pts[:, 0], pts[:, 1], pts[:, 2], color=color, s=15)
-
-    def render(self, output_name, components=['body', 'left', 'right'], fps=15):
-        # Validate inputs
-        valid_parts = {'body', 'left', 'right'}
-        for c in components:
-            if c not in valid_parts:
-                print(f"Error: '{c}' is not a valid component. Use 'body', 'left', or 'right'.")
-                return
-
-        fig = plt.figure(figsize=(8, 8))
-        ax = fig.add_subplot(111, projection='3d')
-        
-        # Diagonal view: elevate 20 degrees, rotate -45 degrees
-        ax.view_init(elev=20, azim=-45)
-
-        def update(i):
-            ax.clear()
-            # Set consistent bounds so the "camera" doesn't jitter
-            ax.set_xlim(0, 1)
-            ax.set_ylim(0, 1)
-            ax.set_zlim(-0.5, 0.5)
+        # 3. RENDER LOOP
+        # We process one frame at a time, creating a NEW figure each time.
+        for idx, raw_pose in enumerate(valid_frames):
             
-            # Labeling
-            ax.set_title(f"Frame {i+1}/{len(self.frames)}")
-            ax.set_xlabel('X')
-            ax.set_ylabel('Y')
-            ax.set_zlabel('Z')
-
-            frame = self.frames[i]
-
-            # Render requested parts if they exist in the JSON
-            if 'body' in components and frame.get('smpl_body'):
-                self._draw_bones(ax, frame['smpl_body'].get('positions'), self.SMPL_PARENT, 'forestgreen')
+            # --- TRANSFORM (Same as Sanity Check) ---
+            pose = np.zeros_like(raw_pose)
+            pose[:, 0] = raw_pose[:, 0]
+            pose[:, 1] = raw_pose[:, 2]
+            pose[:, 2] = -raw_pose[:, 1]
             
-            if 'left' in components and frame.get('mano_left'):
-                self._draw_bones(ax, frame['mano_left'].get('positions'), self.MANO_PARENT, 'crimson')
-                
-            if 'right' in components and frame.get('mano_right'):
-                self._draw_bones(ax, frame['mano_right'].get('positions'), self.MANO_PARENT, 'royalblue')
+            # --- CENTERING (Same as Sanity Check) ---
+            pose -= pose[0] # Center Hips at (0,0,0)
 
-        ani = FuncAnimation(fig, update, frames=len(self.frames), interval=1000/fps)
+            # --- PLOT (Same as Sanity Check) ---
+            # Use 'default' style (White background) because we know it works
+            plt.style.use('default') 
+            fig = plt.figure(figsize=(8, 8))
+            ax = fig.add_subplot(111, projection='3d')
+            
+            # Force Limits (Normalized Data)
+            radius = 0.8
+            ax.set_xlim(-radius, radius)
+            ax.set_ylim(-radius, radius)
+            ax.set_zlim(-radius, radius)
+            ax.view_init(elev=20, azim=-60)
+            ax.set_axis_off()
+
+            # Draw Skeleton (Red Lines)
+            for chain in self.SMPL_CHAINS:
+                ax.plot(pose[chain, 0], pose[chain, 1], pose[chain, 2], 
+                        color='red', linewidth=3, solid_capstyle='round')
+            
+            # Draw Joints (Black Dots)
+            ax.scatter(pose[:,0], pose[:,1], pose[:,2], s=20, color='black')
+
+            # Save
+            filename = os.path.join(output_dir, f"frame_{idx:04d}.png")
+            plt.savefig(filename, dpi=80)
+            
+            # CRITICAL: Close the figure explicitly to free memory
+            plt.close(fig)
+
+            if idx % 20 == 0:
+                print(f"Saved {filename} ...")
+
+        # 4. STITCH VIDEO
+        print("Stitching video...")
+        self.make_video(output_dir, "bulletproof_viz.mp4")
+
+    def make_video(self, input_dir, output_file):
+        images = sorted([img for img in os.listdir(input_dir) if img.endswith(".png")])
+        if not images: return
         
-        print(f"Encoding video: {output_name}...")
-        writer = FFMpegWriter(fps=fps, bitrate=2000)
-        ani.save(output_name, writer=writer)
-        plt.close()
-        print("Done.")
+        # Read first frame to get size
+        frame = cv2.imread(os.path.join(input_dir, images[0]))
+        h, w, l = frame.shape
+        
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        video = cv2.VideoWriter(output_file, fourcc, 20, (w, h))
 
+        for img in images:
+            video.write(cv2.imread(os.path.join(input_dir, img)))
 
-def main():
-    # Path to your JSON output from the extractor
-    input_json = "/home/mb230/projects/human-modeling-3d/data/TOY/processed/20260206_114125_smpl.json" 
-    
-    # Initialize the player
-    player = SkeletonPlayer(input_json)
-    
-    # Specify what you want to see
-    # Try: ['body'], ['left', 'right'], or ['body', 'left', 'right']
-    targets = ['body', 'left', 'right']
-    
-    output_file = "full_skeleton_viz.mp4"
-    
-    # Run the visualization
-    player.render(
-        output_name=output_file, 
-        components=targets, 
-        fps=5
-    )
+        video.release()
+        print(f"SUCCESS! Video saved to {output_file}")
+
+@hydra.main(version_base=None, config_path="../configs", config_name="viz")
+def main(cfg: DictConfig):
+    player = SkeletonPlayer(cfg)
+    player.render()
 
 if __name__ == "__main__":
     main()

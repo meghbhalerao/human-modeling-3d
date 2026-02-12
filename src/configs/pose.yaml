@@ -6,7 +6,7 @@ output_path: null  # Output JSON path (default: <bag_file>_smpl.json)
 
 # MediaPipe model settings
 models:
-  path: "../../checkpoints/mediapipe_models"  # Directory containing MediaPipe models
+  path: "../../checkpoints/mediapipe_models"
   pose_model: "pose_landmarker_heavy.task"
   hand_model: "hand_landmarker.task"
 
@@ -24,33 +24,38 @@ detection:
 
 # Processing options
 processing:
-  visualize: false  # Show visualization window during processing
-  real_time: false  # Process at real-time speed (false = as fast as possible)
-  frame_skip: 1  # Process every Nth frame (1 = all frames)
-  max_frames: null  # Maximum number of frames to process (null = all)
+  visualize: false
+  real_time: false
+  frame_skip: 1
+  max_frames: 0
+  # --- NEW OPTION ---
+  # true: uses RealSense depth sensor + intrinsics for metric 3D (meters)
+  # false: uses MediaPipe internal depth estimation (default)
+  use_realsense_depth: true
 
 # Output options
 output:
-  save_positions: true  # Save 3D positions along with rotations
-  save_metadata: true  # Include metadata in output
-  pretty_print: true  # Format JSON with indentation
+  save_positions: true
+  save_metadata: true
+  pretty_print: true
+  chunk_duration_sec: 10.0
   
 # Reference pose settings
 reference:
-  use_first_frame: true  # Use first detected frame as reference pose
-  custom_reference: null  # Path to custom reference pose JSON (overrides use_first_frame)
+  use_first_frame: true
+  custom_reference: null
 
 # Logging
 logging:
-  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
-  print_progress_every: 100  # Print progress every N frames
-  save_log: false  # Save log to file
+  level: "INFO"
+  print_progress_every: 100
+  save_log: false
   log_path: "extraction.log"
 
 # Defaults
 defaults:
   - _self_
-  - override hydra/hydra_logging: disabled  # Disable Hydra's own logging
+  - override hydra/hydra_logging: disabled
   - override hydra/job_logging: disabled
 
 # Hydra settings

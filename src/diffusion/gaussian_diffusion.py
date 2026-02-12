@@ -11,14 +11,13 @@ Docstrings have been added, as well as DDIM sampling and a new collection of bet
 from dataclasses import dataclass
 import enum
 import math
-import smplx
 
 import numpy as np
 import torch
 import torch as th
 from copy import deepcopy
-from diffusion.nn import mean_flat, sum_flat
-from diffusion.losses import normal_kl, discretized_gaussian_log_likelihood
+from models.human.nn import mean_flat, sum_flat
+from models.human.losses import normal_kl, discretized_gaussian_log_likelihood
 from torch.cuda import amp
 from typing import List
 # from pytorch3d.transforms.rotation_conversions import rotation_6d_to_matrix, matrix_to_axis_angle, matrix_to_rotation_6d
@@ -153,9 +152,7 @@ class GaussianDiffusion:
     :param model_mean_type: a ModelMeanType determining what the model outputs.
     :param model_var_type: a ModelVarType determining how variance is output.
     :param loss_type: a LossType determining the loss function to use.
-    :param rescale_timesteps: if True, pass floating point timesteps into the
-                              model so that they are always scaled like in the
-                              original paper (0 to 1000).
+    :param rescale_timesteps: if True, pass floating point timesteps into the model so that they are always scaled like in the original paper (0 to 1000).
     """
     def __init__(self, conf: DiffusionConfig):
         self.conf = conf

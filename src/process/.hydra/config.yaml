@@ -1,5 +1,5 @@
-bag_file: ../../data/TOY/recordings/20260206_114125.bag
-output_path: ../../data/TOY/processed/20260206_114125_smpl.json
+bag_file: ../../data/TOY/recordings/20260210_100908.bag
+output_path: ../../data/TOY/processed/
 models:
   path: ../../checkpoints/mediapipe_models
   pose_model: pose_landmarker_heavy.task
@@ -18,11 +18,13 @@ processing:
   visualize: false
   real_time: false
   frame_skip: 1
-  max_frames: null
+  max_frames: 0
+  use_realsense_depth: true
 output:
   save_positions: true
   save_metadata: true
   pretty_print: true
+  chunk_duration_sec: 10.0
 reference:
   use_first_frame: true
   custom_reference: null

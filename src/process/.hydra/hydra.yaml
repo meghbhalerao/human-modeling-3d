@@ -85,12 +85,12 @@ hydra:
     - hydra.run.dir=.
     - hydra.mode=RUN
     task:
-    - bag_file=../../data/TOY/recordings/20260206_114125.bag
-    - output_path=../../data/TOY/processed/20260206_114125_smpl.json
+    - bag_file=../../data/TOY/recordings/20260210_100908.bag
+    - output_path=../../data/TOY/processed/
   job:
     name: extract_smpl_mano
     chdir: null
-    override_dirname: bag_file=../../data/TOY/recordings/20260206_114125.bag,output_path=../../data/TOY/processed/20260206_114125_smpl.json
+    override_dirname: bag_file=../../data/TOY/recordings/20260210_100908.bag,output_path=../../data/TOY/processed/
     id: ???
     num: ???
     config_name: pose
