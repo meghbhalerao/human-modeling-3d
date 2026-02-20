@@ -4,8 +4,8 @@ import numpy as np
 from pathlib import Path
 from omegaconf import DictConfig
 
-from arch.transformer import MotionDiT
-from gaussian_diffusion import GaussianDiffusion, get_named_beta_schedule
+from diffusion.arch.transformer import MotionDiT
+from diffusion.gaussian_diffusion import GaussianDiffusion, get_named_beta_schedule
 from utils.kinematics import ForwardKinematics
 from viz_engine import SkeletonPlayer
 

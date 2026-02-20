@@ -1,8 +1,10 @@
 import os
+import sys
 import json
 import torch
 import hydra
 from omegaconf import DictConfig, OmegaConf
+import warnings
 
 # Import your existing utilities
 from utils.fixseed import fixseed
@@ -12,7 +14,7 @@ from data.get_data import get_dataset_loader
 from utils.model_utils import create_model_and_diffusion
 from trainer.train_platforms import WandBPlatform, ClearmlPlatform, TensorboardPlatform, NoPlatform
 
-@hydra.main(version_base=None, config_path=".", config_name="config")
+@hydra.main(version_base=None, config_path="../configs", config_name="dit_train")
 def main(cfg: DictConfig):
     # 1. Setup System
     if torch.cuda.is_available():
@@ -33,7 +35,8 @@ def main(cfg: DictConfig):
     if save_dir is None:
         raise FileNotFoundError('save_dir was not specified.')
     elif os.path.exists(save_dir) and not cfg.experiment.overwrite:
-        raise FileExistsError('save_dir [{}] already exists.'.format(save_dir))
+        #raise FileExistsError('save_dir [{}] already exists.'.format(save_dir))
+        warnings.warn('save_dir [{}] already exists.'.format(save_dir))
     elif not os.path.exists(save_dir):
         os.makedirs(save_dir, exist_ok=True)
 
@@ -44,20 +47,22 @@ def main(cfg: DictConfig):
 
     # 4. Setup Distributed Training
     dist_utils.setup_dist(cfg.training.device)
-
-    print("creating data loader...")
+    
     data = get_dataset_loader(
         name=cfg.data.dataset, 
         batch_size=cfg.data.batch_size, 
         num_frames=cfg.data.num_frames, 
+        cfg = cfg,
         fixed_len=cfg.data.pred_len + cfg.data.context_len, 
         pred_len=cfg.data.pred_len,
         device=dist_utils.dev()
     )
 
+
     print("creating model and diffusion...")
     # Passing the hierarchical 'cfg' object. 
     # You will need to update create_model_and_diffusion to handle cfg.model.target, etc.
+    
     model, diffusion = create_model_and_diffusion(cfg, data)
     model.to(dist_utils.dev())
     

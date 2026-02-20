@@ -45,9 +45,7 @@ class SMPL(_SMPLLayer):
             super(SMPL, self).__init__(**kwargs)
         
         J_regressor_extra = np.load(JOINT_REGRESSOR_TRAIN_EXTRA)
-
         self.register_buffer('J_regressor_extra', torch.tensor(J_regressor_extra, dtype = torch.float32))
-
         vibe_indexes = np.array([JOINT_MAP[i] for i in JOINT_NAMES])
 
         a2m_indexes = vibe_indexes[action2motion_joints]

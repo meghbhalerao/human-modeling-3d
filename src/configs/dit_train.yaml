@@ -9,54 +9,73 @@ experiment:
   train_platform_type: "NoPlatform"
 
 model:
+  arch: trans_enc
   target: dit 
   latent_dim: 512
   n_heads: 8
   n_layers: 12
   dropout: 0.1
-  # Added from code logic
-  cond_mode: "text"      # Assumption based on usage
+  cond_mode: "no_cond"
   multi_target_cond: false 
+  cond_mask_prob: 0.1
+  emb_trans_dec: false
+  text_encoder_type: clip
+  pos_embed_max_len: 5000
+  mask_frames: false
+  lambda_target_loc: 0.0
+  lambda_rcxyz: 0.0 
+  lambda_vel: 0.0
+  lambda_fc: 0.0
 
 diffusion:
   steps: 1000
   noise_schedule: "cosine"
   beta_start: 0.0001
   beta_end: 0.02
+  sigma_small: true
 
 data:
-  dataset: "realsense-mmb-walk" # Changed default to match the check in the code
+  dataset: "realsense-mmb-walk"
   batch_size: 64
   num_frames: 60       
-  pred_len: 20         
   context_len: 10      
   max_seq_len: 196     
   parts: ["body", "left", "right"] 
-  json_dir: "/home/mb230/projects/human-modeling-3d/data/TOY/processed"
-  # Added parameters
-  target_joint_names: [] # List of joints for target conditioning
+  json_dir: "/home/mb230/projects/human-modeling-3d/data/realsense-mmb-walk/processed"
+  target_joint_names: []
+  pred_len: 20      
+  num_workers: 0 
+  pkl_path: null
 
 training:
   lr: 2e-4
-  device: "cuda"
+  device: 0
   log_interval: 100
   save_interval: 5000
   wandb_project: "motion_diffusion_transformer"
-  # Added parameters found in TrainLoop
-  num_steps: 600000        # Was self.cfg.num_steps
-  weight_decay: 0.0        # Was self.cfg.weight_decay
-  lr_anneal_steps: 0       # Was self.cfg.lr_anneal_steps
-  resume_checkpoint: ""    # Was self.cfg.resume_checkpoint
-  use_ema: true            # Was self.cfg.use_ema
-  adam_beta2: 0.999        # Was self.cfg.adam_beta2
-  avg_model_beta: 0.9999   # Was self.cfg.avg_model_beta (EMA decay)
+  num_steps: 600000
+  weight_decay: 0.0
+  lr_anneal_steps: 0
+  resume_checkpoint: ""
+  use_ema: true
+  adam_beta2: 0.999
+  avg_model_beta: 0.9999
+  unconstrained: true
+  start_from_ckpt: true
 
 evaluation:
+  model_path: ""  # Required: Path to model####.pt file to be evaluated
+  eval_mode: "wo_mm"  # Choices: wo_mm, mm_short, debug, full
+  autoregressive: false
+  autoregressive_include_prefix: false
+  autoregressive_init: "data"  # Choices: data, isaac
+  guidance_param: 2.5
   eval_interval: 1000
   num_eval_samples: 16
-  # Added parameters
   eval_during_training: true
   eval_rep_times: 3
+  num_samples: 1000  
+  num_seeds: 20    
 
 sampling:
   checkpoint_path: "checkpoints/latest.pt"
@@ -64,8 +83,19 @@ sampling:
   num_samples: 5
   fps: 30
   save_viz: true
-  # Added parameters
   gen_during_training: true
   gen_num_samples: 5
   gen_num_repetitions: 1
-  guidance_param: 2.5     # Classifier-free guidance scale
+  guidance_param: 1.0
+  model_path: null
+  num_repetitions: 3
+  autoregressive: false
+  autoregressive_include_prefix: false
+  autoregressive_init: "data"
+  # New parameters from the script
+  text_prompt: ""
+  input_text: ""
+  action_name: ""
+  action_file: ""
+  dynamic_text_path: ""
+  motion_length: 6.0  # in seconds, used to calculate n_frames

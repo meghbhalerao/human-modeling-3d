@@ -1,6 +1,7 @@
 import copy
 import functools
 import os
+import sys
 import time
 import re
 import numpy as np
@@ -8,18 +9,24 @@ import torch
 from torch.optim import AdamW
 from os.path import join as pjoin
 from tqdm import tqdm 
+from omegaconf import OmegaConf
 
 # Third-party/Local imports
 import blobfile as bf
 from diffusion import logger
 from utils import dist_utils
+from eval import eval_humanml, eval_humanact12_uestc
 from diffusion.fp16_util import MixedPrecisionTrainer
 from diffusion.resample import LossAwareSampler, UniformSampler, create_named_schedule_sampler
 from utils.sampler_utils import ClassifierFreeSampleModel
 from data.get_data import get_dataset_loader 
-
+from sampler.generate import main as generate
+from data.humanml.scripts.motion_process import get_target_location, sample_goal, get_allowed_joint_options
+from visualize.motions2hik import motions2hik
 # Assuming these exist based on your original code
 # from some_module import evaluation, generate, sample_goal, get_target_location, load_model_wo_clip
+from utils.model_utils import load_model_wo_clip
+
 
 class TrainLoop:
     def __init__(self, cfg, train_platform, model, diffusion, data):
@@ -65,12 +72,15 @@ class TrainLoop:
         self.step = 0
         self.resume_step = 0 
         self.global_batch = self.batch_size 
+
+
         self.num_epochs = self.num_steps // len(self.data) + 1
         
         self.json_path_list = [] # Seems unused or populated later
         self.sync_cuda = torch.cuda.is_available()
 
-        self._load_and_sync_parameters()
+        if self.cfg.training.start_from_ckpt:
+            self._load_and_sync_parameters()
         
         self.mp_trainer = MixedPrecisionTrainer(model=self.model, use_fp16=False, fp16_scale_growth=1e-3)
 
@@ -99,14 +109,14 @@ class TrainLoop:
         self.schedule_sampler = create_named_schedule_sampler(self.schedule_sampler_type, diffusion)
         self.eval_wrapper, self.eval_data, self.eval_gt_data = None, None, None
 
-        # Dataset Loader
-        if self.dataset_name in ['realsense-mmb-walk', 'toy']:
-            # self.data is passed in init, but here we seem to reload or check logic?
-            # Keeping original logic structure but ensuring variables match
-            pass 
-            # trainloader = get_dataset_loader(self.json_path_list, self.parts_to_model) 
-        else:
-            raise ValueError(f"Dataset {self.dataset_name} not found")
+        # # Dataset Loader
+        # if self.dataset_name in ['realsense-mmb-walk', 'toy']:
+        #     # self.data is passed in init, but here we seem to reload or check logic?
+        #     # Keeping original logic structure but ensuring variables match
+        #     pass 
+        #     # trainloader = get_dataset_loader(self.json_path_list, self.parts_to_model) 
+        # else:
+        #     raise ValueError(f"Dataset {self.dataset_name} not found")
     
 
     def _load_and_sync_parameters(self):
@@ -152,9 +162,6 @@ class TrainLoop:
             for group in self.opt.param_groups:
                 group['weight_decay'] = tgt_wd
             self.opt.param_groups[0]['capturable'] = True 
-
-    def cond_modifiers(self, cond, motion):
-        self.target_cond_modifier(cond, motion)
     
     def target_cond_modifier(self, cond, motion):
         if self.cfg.model.multi_target_cond:
@@ -182,13 +189,10 @@ class TrainLoop:
             for motion, cond in tqdm(self.data):
                 if not (not self.lr_anneal_steps or self.total_step() < self.lr_anneal_steps):
                     break
-
-                self.cond_modifiers(cond['y'], motion)
+                self.target_cond_modifier(cond['y'], motion)
                 motion = motion.to(self.device)
                 cond['y'] = {key: val.to(self.device) if torch.is_tensor(val) else val for key, val in cond['y'].items()}
-
                 self.run_step(motion, cond)
-
                 if self.total_step() % self.log_interval == 0:
                     for k, v in logger.get_current().dumpkvs().items():
                         if k == 'loss':
@@ -207,8 +211,8 @@ class TrainLoop:
                     
                     self.evaluate()
                     self.generate_during_training()
-                    
                     self.model.train()
+
                     if self.use_ema:
                         self.model_avg.train()
 
@@ -234,7 +238,7 @@ class TrainLoop:
             mm_num_times = 0
             
             # Assuming evaluation function is imported
-            eval_dict = evaluation(
+            eval_dict = eval_humanml.evaluation(
                 self.eval_wrapper, self.eval_gt_data, self.eval_data, log_file, 
                 replication_times=self.cfg.evaluation.eval_rep_times, 
                 diversity_times=diversity_times, 
@@ -267,12 +271,13 @@ class TrainLoop:
             for param, avg_params in zip(params, self.model_avg.parameters()):
                 avg_params.data.mul_(self.cfg.training.avg_model_beta).add_(param.data, alpha=1 - self.cfg.training.avg_model_beta)
 
+
     def forward_backward(self, batch, cond):
         self.mp_trainer.zero_grad()
         for i in range(0, batch.shape[0], self.batch_size):
             # NOTE: Variable 'last_batch' was calculated but not used in logic except implicit checks
             # Adjusted for potential DDP usage if added later
-            
+
             t, weights = self.schedule_sampler.sample(batch.shape[0], dist_utils.dev())
 
             compute_losses = functools.partial(
@@ -283,9 +288,9 @@ class TrainLoop:
                 model_kwargs=cond, 
                 dataset=self.data.dataset
             )
-
+            
             losses = compute_losses()
-
+            
             if isinstance(self.schedule_sampler, LossAwareSampler):
                 self.schedule_sampler.update_with_local_losses(t, losses['loss'].detach())
             
@@ -315,17 +320,18 @@ class TrainLoop:
         
         # Deepcopy the whole config to avoid modifying the original
         gen_args = copy.deepcopy(self.cfg)
-        
+        OmegaConf.set_struct(gen_args, False)
+
         # We manually flatten or set specific args if the 'generate' function expects a flat namespace
         # (Assuming generate function handles this object)
-        gen_args.model_path = os.path.join(self.save_dir, self.ckpt_file_name())
-        gen_args.output_dir = os.path.join(self.save_dir, f'{self.ckpt_file_name()}.samples')
+        gen_args.sampling.model_path = os.path.join(self.save_dir, self.ckpt_file_name())
+        gen_args.sampling.output_dir = os.path.join(self.save_dir, f'{self.ckpt_file_name()}.samples')
         
         # Mapping from nested structure to what generate() likely expects if it wasn't updated
         # If generate() is updated, these assignments can be cleaned up
-        gen_args.num_samples = self.cfg.sampling.gen_num_samples
-        gen_args.num_repetitions = self.cfg.sampling.gen_num_repetitions
-        gen_args.guidance_param = self.cfg.sampling.guidance_param
+        # gen_args.sampling.num_samples = self.cfg.sampling.gen_num_samples
+        # gen_args.num_repetitions = self.cfg.sampling.gen_num_repetitions
+        # gen_args.guidance_param = self.cfg.sampling.guidance_param
         gen_args.motion_length = 6
         gen_args.input_text = ''
         gen_args.text_prompt = '' 
@@ -336,9 +342,11 @@ class TrainLoop:
         if self.cfg.model.multi_target_cond:
             gen_args.sampling_mode = 'goal'
             gen_args.target_joint_source = 'data'
-            
+
         # Assuming generate is imported
         all_sample_save_path = generate(gen_args)
+
+
         self.train_platform.report_media(title='Motion', series='Predicted Motion', iteration=self.total_step(), local_path=all_sample_save_path)
 
     def find_resume_checkpoint(self):

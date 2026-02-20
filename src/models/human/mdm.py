@@ -3,14 +3,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import clip
-from model.rotation2xyz import Rotation2XYZ
-from model.BERT.BERT_encoder import load_bert
+from models.human.rotation2xyz import Rotation2xyz
+from models.BERT.BERT_encoder import load_bert
 from utils.misc import WeightedSum
-
+import sys
 
 
 class MDM(nn.Module):
     def __init__(self, modeltype, njoints, nfeats, num_actions, translation, pose_rep, glob, glob_rot, latent_dim = 256, ff_size = 1024, num_layers = 8, num_heads = 4, dropout = 0.1, ablation = None, activation = 'gelu', legacy = False, data_rep = 'rot6d', dataset = 'amass', clip_dim = 512, arch = 'trans_enc', emb_trans_dec = False, clip_version = None, **kargs):
+
         super().__init__()
         self.legacy = legacy
         self.modeltype = modeltype
@@ -35,6 +36,7 @@ class MDM(nn.Module):
         self.activation = activation
         self.clip_dim = clip_dim
         self.action_emb = kargs.get('action_emb', None)
+
         self.input_feats = self.njoints * self.nfeats
 
         self.normalize_output = kargs.get('normalize_encoder_output', False)
@@ -46,7 +48,6 @@ class MDM(nn.Module):
         self.gru_emb_dim = self.latent_dim if self.arch == 'gru' else 0
         
         self.input_process = InputProcess(self.data_rep, self.input_feats + self.gru_emb_dim, self.latent_dim)
-
         self.emb_policy = kargs.get('emb_policy', 'add')
 
         self.sequential_pos_encoder = PositionalEncoding(self.latent_dim, self.dropout, max_len = kargs.get('pos_embed_max_len', 5000))
@@ -55,6 +56,7 @@ class MDM(nn.Module):
         self.pred_len = kargs.get('pred_len', 0)
         self.context_len = kargs.get('context_len', 0)
         self.total_len = self.pred_len + self.context_len
+
         self.is_prefix_comp = self.total_len > 0
         self.all_goal_joint_names = kargs.get('all_goal_joint_names', [])
 
@@ -72,7 +74,7 @@ class MDM(nn.Module):
         
         if self.arch == 'trans_enc':
             print('TRANS ENC init')
-            seqTransEncoderLayer = nn.TransformerEncoderLayer(d_model = self.latent_dim, nhead = self.num_heads, dim_feedforward = self.ff_size, dropout = self.dropout, activation = self.activation)
+            seqTransEncoderLayer = nn.TransformerEncoderLayer(d_model = self.latent_dim, nhead = self.num_heads, dim_feedforward = self.ff_size, dropout = self.dropout, activation = self.activation, batch_first = True)
 
             self.seqTransEncoder = nn.TransformerEncoder(seqTransEncoderLayer, num_layers=self.num_layers)
 
@@ -88,7 +90,7 @@ class MDM(nn.Module):
         else:
             raise ValueError('Please choose correct architecture [trans_enc, trans_dec, gru]')
         
-        self.embed_timestep = TimestepEmbedder(self.latent_dim, self.sequential_pos_encoder)
+        self.embed_timesteps = TimestepEmbedder(self.latent_dim, self.sequential_pos_encoder)
 
         if self.cond_mode != 'no_cond':
             if 'text' in self.cond_mode:
@@ -174,8 +176,9 @@ class MDM(nn.Module):
         if 'target_cond' in y.keys():
             time_emb += self.mask_cond(self.embed_targe_cond(y['target_cond'], y['target_joint_names'], y['is_heading'])[None], force_mask = y.get('target_uncond', False))
 
+
         if self.is_prefix_comp:
-            x = torch.cat([y['prefix'], x], dim = -1)
+            # x = torch.cat([y['prefix'], x], dim = -1) - TEMP REMOVING THIS
             y['mask'] = torch.cat([torch.ones([bs, 1, 1, self.context_len])], dim = -1)
 
         force_mask = y.get('uncond', False)
@@ -213,8 +216,8 @@ class MDM(nn.Module):
             emb_gru = emb_gru.reshape(bs, self.latent_dim, 1, nframes)  #[bs, d, 1, #frames]
             x = torch.cat((x_reshaped, emb_gru), axis=1)  #[bs, d+joints*feat, 1, #frames]
 
-        x = self.input_process(x)
 
+        x = self.input_process(x)
         frames_mask = None
         is_valid_mask = y['mask'].shape[-1] > 1
         if self.mask_frames and is_valid_mask:
@@ -223,10 +226,15 @@ class MDM(nn.Module):
             if self.emb_trans_dec or self.arch == 'trans_enc':
                 step_mask = torch.zeros((bs, 1), dtype = torch.bool, device = x.device)
                 frames_mask = torch.cat([step_mask, frames_mask], dim = 1)
+
+        emb_num, bs, emb_dim = emb.shape
+        emb = emb.view(bs, emb_num, emb_dim)
+
         if self.arch == 'trans_enc':
-            xseq = torch.cat((emb, x), axis = 0)
+            xseq = torch.cat((emb.view(bs, emb_num, emb_dim), x), axis = 1)
             xseq = self.sequential_pos_encoder(xseq)
-            output = self.seqTransEncoder(xseq, src_key_padding = frames_mask)[1:]
+            output = self.seqTransEncoder(xseq, src_key_padding_mask = frames_mask)[:,1:,:]
+
         
         elif self.arch == 'trans_dec':
             if self.emb_trans_dec:
@@ -255,6 +263,8 @@ class MDM(nn.Module):
             y['mask'] = y['mask'][..., self.context_len:]
         
         output = self.output_process(output)
+        nframes, njoints, nfeats, bs = output.shape
+        output = output.contiguous().view(bs, njoints, nfeats, nframes)
         return output
     
     def _apply(self, fn):
@@ -300,16 +310,16 @@ class InputProcess(nn.Module):
         self.data_rep = data_rep
         self.input_feats = input_feats
         self.latent_dim = latent_dim
+
         self.poseEmbedding = nn.Linear(self.input_feats, self.latent_dim)
         if self.data_rep == 'rot_vel':
             self.velEmbedding = nn.Linear(self.input_feats, self.latent_dim)
     
     def forward(self, x):
         bs, njoints, nfeats, nframes = x.shape
-        x = x.permute((3, 0, 1, 2)).reshape(nframes, bs, njoints * nfeats)
-
+        # x = x.permute((3, 0, 1, 2)).reshape(nframes, bs, njoints * nfeats)
         if self.data_rep in ['rot6d', 'xyz', 'hml_vec']:
-            x = self.poseEmbedding(x)
+            x = self.poseEmbedding(x.view(bs, nframes, njoints * nfeats))
             return x
         elif self.data_rep == 'rot_vel':
             first_pose = x[[0]]
@@ -328,7 +338,7 @@ class OutputProcess(nn.Module):
         self.input_feats = input_feats
         self.latent_dim = latent_dim
         self.njoints = njoints
-        self.nfeats = nfeats
+        self.nfeats = nfeats        
         self.poseFinal = nn.Linear(self.latent_dim, self.input_feats)
         if self.data_rep == 'rot_vel':
             self.velFinal = nn.Linear(self.latent_dim, self.input_feats)
@@ -337,7 +347,7 @@ class OutputProcess(nn.Module):
     def forward(self, output):
         nframes, bs, d = output.shape
         if self.data_rep in ['rot6d', 'xyz', 'hml_vec']:
-            output - self.poseFinal(output)
+            output  = self.poseFinal(output)
         elif self.data_rep == 'rot_vel':
             first_pose = output[[0]]
             first_pose = self.poseFinal(first_pose)
@@ -422,7 +432,7 @@ class EmbedTargetLocMulti(nn.Module):
         self.latent_dim = latent_dim
 
 
-    def forward(self, input, target_joint_names, tatget_heading):
+    def forward(self, input, target_joint_names, target_heading):
         output = torch.zeros((input.shape[0], self.latent_dim), dtype = input.dtype, device = input.device)
 
         for sample_idx, sample_joint_names in enumerate(target_joint_names):

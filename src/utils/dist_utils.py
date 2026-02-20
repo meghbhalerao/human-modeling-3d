@@ -3,6 +3,7 @@ Helpers for distributed training.
 """
 
 import socket
+import sys
 
 import torch as th
 import torch.distributed as dist
@@ -45,6 +46,7 @@ def dev():
     """
     Get the device to use for torch.distributed.
     """
+
     global used_device
     if th.cuda.is_available() and used_device>=0:
         return th.device(f"cuda:{used_device}")

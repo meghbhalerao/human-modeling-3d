@@ -1,0 +1,9 @@
+defaults:
+  - _self_
+
+# Path to stick figure mp4 file to be rendered
+input_path: ""  # Required: must be provided via command line or override
+
+# CUDA settings
+cuda: true
+device: 0 

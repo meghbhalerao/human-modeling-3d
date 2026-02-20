@@ -71,12 +71,12 @@ class SpacedDiffusion(GaussianDiffusion):
     :param kwargs: the kwargs to create the base diffusion process.
     """
 
-    def __init__(self, use_timesteps, conf: DiffusionConfig):
+    def __init__(self, use_timesteps, **kwargs):
         self.use_timesteps = set(use_timesteps)
         self.timestep_map = []
-        self.original_num_steps = len(conf.betas)
+        self.original_num_steps = len(kwargs["betas"])
 
-        base_diffusion = GaussianDiffusion(conf)  # pylint: disable=missing-kwoa
+        base_diffusion = GaussianDiffusion(**kwargs)  # pylint: disable=missing-kwoa
         last_alpha_cumprod = 1.0
         new_betas = []
         for i, alpha_cumprod in enumerate(base_diffusion.alphas_cumprod):
@@ -84,11 +84,8 @@ class SpacedDiffusion(GaussianDiffusion):
                 new_betas.append(1 - alpha_cumprod / last_alpha_cumprod)
                 last_alpha_cumprod = alpha_cumprod
                 self.timestep_map.append(i)
-
-        # use the new conf to create a new diffusion process
-        new_conf = deepcopy(conf)
-        new_conf.betas = np.array(new_betas)
-        super().__init__(new_conf)
+        kwargs["betas"] = np.array(new_betas)
+        super().__init__(**kwargs)
 
     def p_mean_variance(
         self, model, *args, **kwargs
