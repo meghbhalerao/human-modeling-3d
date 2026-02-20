@@ -2,7 +2,7 @@
 __pycache__/
 *.py[codz]
 *$py.class
-
+save/
 # C extensions
 *.so
 
@@ -160,7 +160,7 @@ venv.bak/
 dmypy.json
 
 # Pyre type checker
-.pyre/
+.pyre/i
 
 # pytype static type analyzer
 .pytype/
