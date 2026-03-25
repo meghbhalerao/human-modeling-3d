@@ -1,0 +1,1 @@
+python replay_mujoco_rot.py scene_xml=~/projects/human-modeling-3d/assets/human/scene_hml_offsets.xml

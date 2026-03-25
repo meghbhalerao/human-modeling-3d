@@ -50,8 +50,12 @@ def get_model_args(args, data):
         nfeats = 1
     elif args.data.dataset == 'modiff-2022-gen':
         data_rep = 'modiff_vec'
-        njoints = 263
-        nfeats = 1
+        if data.dataset.use_only_xyz:
+            njoints = 66
+            nfeats = 1
+        else:
+            njoints = 263
+            nfeats = 1
     else:
         raise ValueError(f"Dataset {args.data.dataset} not recognized for model argument configuration")
 

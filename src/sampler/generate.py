@@ -25,12 +25,14 @@ def main(args = None):
         njoints_body = 24
     elif args.data.dataset == 'humanml':
         njoints_body = 22
+    elif args.data.dataset == 'modiff-2022-gen':
+        njoints_body = 24
     else:
         raise ValueError(f"Dataset {args.data.dataset} is not defined!")
     
     name = os.path.basename(os.path.dirname(args.sampling.model_path))
     niter = os.path.basename(args.sampling.model_path).replace('model', '').replace('.pt', '')
-    max_frames = 196 if args.data.dataset in ['kit', 'humanml', 'realsense-mmb-walk'] else 60
+    max_frames = 196 if args.data.dataset in ['kit', 'humanml', 'realsense-mmb-walk', 'modiff-2022-gen'] else 60
     fps = 12.5 if args.data.dataset == 'kit' else 20
     n_frames = min(max_frames, int(args.sampling.motion_length * fps))
     is_using_data = not any([args.sampling.input_text, args.sampling.text_prompt, args.sampling.action_file, args.sampling.action_name])
@@ -77,13 +79,7 @@ def main(args = None):
     args.data.batch_size = args.sampling.num_samples
 
     print('Loading dataset ....')
-    data = get_dataset_loader(name=args.data.dataset,
-                              batch_size=args.data.batch_size,
-                              num_frames=max_frames,
-                              cfg = args,
-                              split='test',
-                              hml_mode='train' if args.data.pred_len > 0 else 'text_only',  # We need to sample a prefix from the dataset
-                              fixed_len=args.data.pred_len + args.data.context_len, pred_len=args.data.pred_len, device=dist_utils.dev())
+    data = get_dataset_loader(name=args.data.dataset, batch_size=args.data.batch_size, num_frames=max_frames, cfg = args, split='test',hml_mode='train' if args.data.pred_len > 0 else 'text_only', fixed_len=args.data.pred_len + args.data.context_len, pred_len=args.data.pred_len, device=dist_utils.dev())
     
     data.fixed_length = n_frames
     total_num_samples = args.sampling.num_samples * args.sampling.num_repetitions
@@ -147,41 +143,74 @@ def main(args = None):
             model_kwargs['y']['text_embed'] = (model_kwargs['y']['text_embed'][0].unsqueeze(0).repeat(args.sampling.num_samples, 1, 1, 1), model_kwargs['y']['text_embed'][1].unsqueeze(0).repeat(args.sampling.num_samples, 1, 1))
         else:
             raise NotImplementedError('DiP model only supports BERT text encoder at the moment. If you implement this, please send a PR!')
+        
+    if os.path.exists(out_path):
+        shutil.rmtree(out_path)
+    os.makedirs(out_path)
 
     for rep_i in range(args.sampling.num_repetitions):
         print(f'### Sampling repetitions # {rep_i}')
-
-        sample = sample_fn(model, motion_shape, clip_denoised = False,
-                           model_kwargs = model_kwargs,
-                           skip_timesteps= 0,
+        dump_steps = [0, 200, 500, 800, 999] # for debugging the denoising process
+        samples_at_steps = sample_fn(model, motion_shape, clip_denoised = False, model_kwargs = model_kwargs, skip_timesteps= 0,
                            init_image=init_image,
                            progress= True,
-                           dump_steps= None,
+                           dump_steps= dump_steps,
                            noise = None,
                            const_noise = False)
- 
-        if model.data_rep == 'hml_vec':
-            n_joints = 22 if sample.shape[1] == 263 else 21
-            sample = data.dataset.t2m_dataset.inv_transform(sample.cpu().permute(0, 2, 3, 1)).float()
-            sample = recover_from_ric(sample, n_joints)
-            sample = sample.view(-1, *sample.shape[2:]).permute(0, 2, 3, 1)
         
-        rot2xyz_pose_rep = 'xyz' if model.data_rep in ['xyz', 'hml_vec'] else model.data_rep
-        
-        rot2xyz_mask = None if rot2xyz_pose_rep == 'xyz' or rot2xyz_pose_rep == 'rot6d' else model_kwargs['y']['mask'].reshape(args.data.batch_size, n_frames).bool()
+        for dump_i, (step_idx, sample) in enumerate(zip(dump_steps, samples_at_steps)):
+            print(f"Visualizing dump step {step_idx}") 
 
-        sample = model.rot2xyz(x = sample,
-                               mask = rot2xyz_mask, pose_rep = rot2xyz_pose_rep, glob = True,
-                               translation = True,
-                               jointstype = 'smpl', vertstrans= True, betas = None, beta = 0, glob_rot=None, get_rotations_back = False, njoints_body = njoints_body)        
+            if model.data_rep == 'hml_vec' or model.data_rep == 'modiff_vec':
+                n_joints = 22 if sample.shape[1] == 263 or sample.shape[1] == 22 else 21
+                if args.data.dataset == 'modiff-2022-gen':
+                    # sample = sample.cpu().permute(0,2,3,1)
+                    # sample = torch.randn_like(sample)
+                    sample = data.dataset.inv_transform(sample.cpu()).float()
+                    sample = sample.permute(0, 2, 3, 1) 
+                else:
+                    sample = data.dataset.t2m_dataset.inv_transform(sample.cpu().permute(0, 2, 3, 1)).float()
+
+                if data.dataset.use_only_xyz:
+                    pass
+                else:
+                    
+                    sample = recover_from_ric(sample, n_joints)
+                    sample = sample.view(-1, *sample.shape[2:]).permute(0, 2, 3, 1)
+    
+            rot2xyz_pose_rep = 'xyz' if model.data_rep in ['xyz', 'hml_vec', 'modiff_vec'] else model.data_rep         
+
+            rot2xyz_mask = None if rot2xyz_pose_rep == 'xyz' or rot2xyz_pose_rep == 'rot6d' else model_kwargs['y']['mask'].reshape(args.data.batch_size, n_frames).bool()
+            
+            sample = model.rot2xyz(x = sample, mask = rot2xyz_mask, pose_rep = rot2xyz_pose_rep, glob = True,  translation = True, jointstype = 'smpl', vertstrans= True, betas = None, beta = 0, glob_rot=None, get_rotations_back = False, njoints_body = njoints_body)   
+            
+            motion = sample[0].cpu().numpy().transpose(2, 0, 1)  # take first sample
+            skeleton = paramUtil.kit_kinematic_chain if args.data.dataset == 'kit' else paramUtil.t2m_kinematic_chain
+
+            animation = plot_3d_motion(
+                os.path.join(out_path, f'dump_rep{rep_i}_step{step_idx}.mp4'),
+                skeleton, motion,
+                dataset=args.data.dataset,
+                title=f'Denoising step {step_idx}',
+                fps=fps
+            )
+
+            animation.duration = motion.shape[0] / fps
+            animation.write_videofile(
+                os.path.join(out_path, f'dump_rep{rep_i}_step{step_idx}.mp4'),
+                fps=fps, logger=None
+            )
+            animation.close()
+    
 
         bs, _,_,_ = sample.shape
+
         if args.training.unconstrained:
             all_text += ['unconstrained'] * args.sampling.num_samples
         else:
             text_key = 'text' if 'text' in model_kwargs['y'] else 'action_text'
             all_text+= model_kwargs['y'][text_key]
-        
+
 
         all_motions.append(sample.cpu().numpy())
         _, _, _, nframes = sample.shape
@@ -197,15 +226,15 @@ def main(args = None):
     all_text = all_text[:total_num_samples]
     all_lengths = np.concatenate(all_lengths, axis=0)[:total_num_samples]
 
-    if os.path.exists(out_path):
-        shutil.rmtree(out_path)
-    os.makedirs(out_path)
+
 
     npy_path = os.path.join(out_path, 'results.npy')
     print(f"saving results file to [{npy_path}]")
     np.save(npy_path,
             {'motion': all_motions, 'text': all_text, 'lengths': all_lengths,
              'num_samples': args.sampling.num_samples, 'num_repetitions': args.sampling.num_repetitions})
+    
+
     if args.sampling.dynamic_text_path != '':
         text_file_content = '\n'.join(['#'.join(s) for s in all_text])
     else:
@@ -236,7 +265,6 @@ def main(args = None):
                     caption_per_frame += [c] * args.data.pred_len
                 caption = caption_per_frame
 
-            
             # Trim / freeze motion if needed
             length = all_lengths[rep_i*args.data.batch_size + sample_i]
             motion = all_motions[rep_i*args.data.batch_size + sample_i].transpose(2, 0, 1)[:max_length]
@@ -247,6 +275,7 @@ def main(args = None):
             animation_save_path = os.path.join(out_path, save_file)
             gt_frames = np.arange(args.data.context_len) if args.data.context_len > 0 and not args.sampling.autoregressive else []
             animations[sample_i, rep_i] = plot_3d_motion(animation_save_path, skeleton, motion, dataset=args.data.dataset, title=caption, fps=fps, gt_frames=gt_frames)
+
             rep_files.append(animation_save_path)
 
     save_multiple_samples(out_path, {'all': all_file_template}, animations, fps, max(list(all_lengths) + [n_frames]))
@@ -261,7 +290,7 @@ def save_multiple_samples(out_path, file_templates,  animations, fps, max_frames
     num_samples_in_out_file = 3
     n_samples = animations.shape[0]
     
-    for sample_i in range(0,n_samples,num_samples_in_out_file):
+    for sample_i in range(0, n_samples, num_samples_in_out_file):
         last_sample_i = min(sample_i+num_samples_in_out_file, n_samples)
         all_sample_save_file = file_templates['all'].format(sample_i, last_sample_i-1)
         if no_dir and n_samples <= num_samples_in_out_file:

@@ -10,7 +10,7 @@ from torch.optim import AdamW
 from os.path import join as pjoin
 from tqdm import tqdm 
 from omegaconf import OmegaConf
-
+import wandb
 # Third-party/Local imports
 import blobfile as bf
 from diffusion import logger
@@ -72,7 +72,6 @@ class TrainLoop:
         self.step = 0
         self.resume_step = 0 
         self.global_batch = self.batch_size 
-
 
         self.num_epochs = self.num_steps // len(self.data) + 1
         
@@ -182,17 +181,22 @@ class TrainLoop:
                 cond['is_heading']
             ).detach()
 
+
     def run_loop(self):
         print('train steps:', self.num_steps)
+        print('number of epochs', self.num_epochs)
+        print('number of minibatches:', len(self.data))
         for epoch in range(self.num_epochs):
             print(f'Starting epoch {epoch}')
             for motion, cond in tqdm(self.data):
                 if not (not self.lr_anneal_steps or self.total_step() < self.lr_anneal_steps):
                     break
+                
                 self.target_cond_modifier(cond['y'], motion)
                 motion = motion.to(self.device)
                 cond['y'] = {key: val.to(self.device) if torch.is_tensor(val) else val for key, val in cond['y'].items()}
-                self.run_step(motion, cond)
+
+
                 if self.total_step() % self.log_interval == 0:
                     for k, v in logger.get_current().dumpkvs().items():
                         if k == 'loss':
@@ -203,6 +207,7 @@ class TrainLoop:
                         else:
                             self.train_platform.report_scalar(name=k, value=v, iteration=self.total_step(), group_name='Loss')
                 
+
                 if self.total_step() % self.save_interval == 0:
                     self.save()
                     self.model.eval()
@@ -219,6 +224,8 @@ class TrainLoop:
                     # Safety break for tests
                     if os.environ.get('DIFFUSION_TRAINING_TEST', "") and self.total_step() > 0:
                         return
+                
+                self.run_step(motion, cond)
 
                 self.step += 1
             
@@ -288,7 +295,7 @@ class TrainLoop:
                 model_kwargs=cond, 
                 dataset=self.data.dataset
             )
-            
+
             losses = compute_losses()
             
             if isinstance(self.schedule_sampler, LossAwareSampler):

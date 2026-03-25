@@ -7,3 +7,5 @@ input_path: ""  # Required: must be provided via command line or override
 # CUDA settings
 cuda: true
 device: 0 
+save_video: false
+fps: 15

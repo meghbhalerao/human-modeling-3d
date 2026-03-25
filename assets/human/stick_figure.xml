@@ -1,0 +1,440 @@
+<mujoco model="stick_figure">
+
+    <size njmax="1000" nconmax="500"/>
+
+    <compiler angle="degree" inertiafromgeom="true" coordinate="global"/>
+    <!--
+        coordinate="global": all positions in world space.
+        This is important — mocap body positions are absolute world coords.
+    -->
+
+    <visual>
+        <headlight ambient=".4 .4 .4" diffuse=".8 .8 .8" specular="0.1 0.1 0.1"/>
+        <map znear=".01"/>
+        <quality shadowsize="2048"/>
+    </visual>
+
+    <option timestep="0.0333" gravity="0 0 -9.81"/>
+    <!--
+        Z-up coordinate system.
+        Gravity along -Z.
+        Gravity has no effect on mocap bodies but matters for
+        any physics objects we add later (table, chair).
+    -->
+
+    <statistic extent="3" center="0 0 1"/>
+
+    <asset>
+        <texture builtin="checker" height="100" name="texplane"
+                 rgb1="0.15 0.15 0.15" rgb2="0.6 0.6 0.6"
+                 type="2d" width="100"/>
+        <material name="MatPlane" reflectance="0.3" shininess="0.5"
+                  specular="0.5" texrepeat="4 4" texture="texplane"/>
+        <texture type="skybox" builtin="gradient"
+                 rgb1=".4 .5 .6" rgb2="0 0 0"
+                 width="100" height="100"/>
+    </asset>
+
+    <worldbody>
+
+        <!-- ===== LIGHTING ===== -->
+        <light name="main_light"
+               pos="0 -2 4" dir="0 1 -2"
+               diffuse="0.8 0.8 0.8" specular="0.2 0.2 0.2"
+               directional="true" castshadow="true"/>
+        <light name="fill_light"
+               pos="0 2 3" dir="0 -1 -1"
+               diffuse="0.3 0.3 0.3" specular="0.0 0.0 0.0"
+               directional="true" castshadow="false"/>
+
+        <!-- ===== FLOOR ===== -->
+        <!--
+            Z-up, floor at Z=0.
+            Feet in the T-pose data are at Y ~ -1.14 (Y-up)
+            which becomes Z ~ -1.14 after conversion.
+            We offset the floor slightly below that.
+        -->
+        <geom name="floor" type="plane"
+              pos="0 0 -1.20" size="5 5 0.1"
+              material="MatPlane"
+              conaffinity="1" condim="3" contype="1"/>
+
+        <!-- ===== CAMERAS ===== -->
+        <!--
+            side_cam:  view from the side (+X), good for walking
+            front_cam: view from the front (+Y)
+            top_cam:   bird's eye view from above (+Z)
+        -->
+        <camera name="side_cam"
+                pos="4 0 1"
+                xyaxes="0 1 0 0 0 1"/>
+        <camera name="front_cam"
+                pos="0 -4 1"
+                xyaxes="1 0 0 0 0 1"/>
+        <camera name="top_cam"
+                pos="0 0 5"
+                xyaxes="1 0 0 0 1 0"/>
+
+        <!-- ===== JOINT SPHERES (22 mocap bodies) ===== -->
+        <!--
+            Each body is mocap=true.
+            Positions are set directly from motion data in replay.py.
+            Initial pos here is just the T-pose — overwritten on frame 1.
+            Orange sphere = pelvis (root), blue spheres = all other joints.
+        -->
+
+        <!-- Joint 0: pelvis -->
+        <body name="joint_pelvis" mocap="true" pos="-0.0018 0.0282 -0.2233">
+            <geom type="sphere" size="0.04"
+                  rgba="1.0 0.5 0.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Joint 1: left_hip -->
+        <body name="joint_left_hip" mocap="true" pos="0.0677 0.0214 -0.3147">
+            <geom type="sphere" size="0.025"
+                  rgba="0.2 0.6 1.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Joint 2: right_hip -->
+        <body name="joint_right_hip" mocap="true" pos="-0.0695 0.0239 -0.3139">
+            <geom type="sphere" size="0.025"
+                  rgba="0.2 0.6 1.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Joint 3: spine1 -->
+        <body name="joint_spine1" mocap="true" pos="-0.0043 0.0015 -0.1144">
+            <geom type="sphere" size="0.025"
+                  rgba="0.2 0.6 1.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Joint 4: left_knee -->
+        <body name="joint_left_knee" mocap="true" pos="0.1020 0.0169 -0.6899">
+            <geom type="sphere" size="0.025"
+                  rgba="0.2 0.6 1.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Joint 5: right_knee -->
+        <body name="joint_right_knee" mocap="true" pos="-0.1078 0.0150 -0.6964">
+            <geom type="sphere" size="0.025"
+                  rgba="0.2 0.6 1.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Joint 6: spine2 -->
+        <body name="joint_spine2" mocap="true" pos="0.0012 0.0026 0.0208">
+            <geom type="sphere" size="0.025"
+                  rgba="0.2 0.6 1.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Joint 7: left_ankle -->
+        <body name="joint_left_ankle" mocap="true" pos="0.0884 -0.0268 -1.0879">
+            <geom type="sphere" size="0.025"
+                  rgba="0.2 0.6 1.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Joint 8: right_ankle -->
+        <body name="joint_right_ankle" mocap="true" pos="-0.0920 -0.0273 -1.0948">
+            <geom type="sphere" size="0.025"
+                  rgba="0.2 0.6 1.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Joint 9: spine3 -->
+        <body name="joint_spine3" mocap="true" pos="0.0026 0.0280 0.0737">
+            <geom type="sphere" size="0.025"
+                  rgba="0.2 0.6 1.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Joint 10: left_foot -->
+        <body name="joint_left_foot" mocap="true" pos="0.1148 0.0925 -1.1437">
+            <geom type="sphere" size="0.025"
+                  rgba="0.2 0.6 1.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Joint 11: right_foot -->
+        <body name="joint_right_foot" mocap="true" pos="-0.1174 0.0961 -1.1430">
+            <geom type="sphere" size="0.025"
+                  rgba="0.2 0.6 1.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Joint 12: neck -->
+        <body name="joint_neck" mocap="true" pos="-0.0002 -0.0148 0.2876">
+            <geom type="sphere" size="0.025"
+                  rgba="0.2 0.6 1.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Joint 13: left_collar -->
+        <body name="joint_left_collar" mocap="true" pos="0.0815 -0.0060 0.1955">
+            <geom type="sphere" size="0.025"
+                  rgba="0.2 0.6 1.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Joint 14: right_collar -->
+        <body name="joint_right_collar" mocap="true" pos="-0.0791 -0.0106 0.1926">
+            <geom type="sphere" size="0.025"
+                  rgba="0.2 0.6 1.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Joint 15: head -->
+        <body name="joint_head" mocap="true" pos="0.0050 0.0365 0.3526">
+            <geom type="sphere" size="0.025"
+                  rgba="0.2 0.6 1.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Joint 16: left_shoulder -->
+        <body name="joint_left_shoulder" mocap="true" pos="0.1724 -0.0149 0.2260">
+            <geom type="sphere" size="0.025"
+                  rgba="0.2 0.6 1.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Joint 17: right_shoulder -->
+        <body name="joint_right_shoulder" mocap="true" pos="-0.1752 -0.0197 0.2251">
+            <geom type="sphere" size="0.025"
+                  rgba="0.2 0.6 1.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Joint 18: left_elbow -->
+        <body name="joint_left_elbow" mocap="true" pos="0.4320 -0.0424 0.2132">
+            <geom type="sphere" size="0.025"
+                  rgba="0.2 0.6 1.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Joint 19: right_elbow -->
+        <body name="joint_right_elbow" mocap="true" pos="-0.4289 -0.0411 0.2118">
+            <geom type="sphere" size="0.025"
+                  rgba="0.2 0.6 1.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Joint 20: left_wrist -->
+        <body name="joint_left_wrist" mocap="true" pos="0.6813 -0.0435 0.2222">
+            <geom type="sphere" size="0.025"
+                  rgba="0.2 0.6 1.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Joint 21: right_wrist -->
+        <body name="joint_right_wrist" mocap="true" pos="-0.6842 -0.0467 0.2196">
+            <geom type="sphere" size="0.025"
+                  rgba="0.2 0.6 1.0 1.0"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- ===== BONE CAPSULES (21 bodies) ===== -->
+        <!--
+            One capsule per parent->child bone.
+            These are NOT mocap bodies — they are static geom bodies
+            whose fromto attribute is updated in Python each frame
+            using sim.model.geom_fromto.
+            pos="0 0 0" because fromto uses absolute world coordinates.
+        -->
+
+        <!-- Bone: pelvis -> left_hip -->
+        <body name="bone_pelvis_left_hip" pos="0 0 0">
+            <geom name="bone_0_1"
+                  type="capsule" size="0.012"
+                  fromto="-0.0018 0.0282 -0.2233  0.0677 0.0214 -0.3147"
+                  rgba="0.8 0.8 0.8 0.9"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Bone: pelvis -> right_hip -->
+        <body name="bone_pelvis_right_hip" pos="0 0 0">
+            <geom name="bone_0_2"
+                  type="capsule" size="0.012"
+                  fromto="-0.0018 0.0282 -0.2233  -0.0695 0.0239 -0.3139"
+                  rgba="0.8 0.8 0.8 0.9"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Bone: pelvis -> spine1 -->
+        <body name="bone_pelvis_spine1" pos="0 0 0">
+            <geom name="bone_0_3"
+                  type="capsule" size="0.012"
+                  fromto="-0.0018 0.0282 -0.2233  -0.0043 0.0015 -0.1144"
+                  rgba="0.8 0.8 0.8 0.9"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Bone: left_hip -> left_knee -->
+        <body name="bone_left_hip_left_knee" pos="0 0 0">
+            <geom name="bone_1_4"
+                  type="capsule" size="0.012"
+                  fromto="0.0677 0.0214 -0.3147  0.1020 0.0169 -0.6899"
+                  rgba="0.8 0.8 0.8 0.9"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Bone: right_hip -> right_knee -->
+        <body name="bone_right_hip_right_knee" pos="0 0 0">
+            <geom name="bone_2_5"
+                  type="capsule" size="0.012"
+                  fromto="-0.0695 0.0239 -0.3139  -0.1078 0.0150 -0.6964"
+                  rgba="0.8 0.8 0.8 0.9"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Bone: spine1 -> spine2 -->
+        <body name="bone_spine1_spine2" pos="0 0 0">
+            <geom name="bone_3_6"
+                  type="capsule" size="0.012"
+                  fromto="-0.0043 0.0015 -0.1144  0.0012 0.0026 0.0208"
+                  rgba="0.8 0.8 0.8 0.9"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Bone: left_knee -> left_ankle -->
+        <body name="bone_left_knee_left_ankle" pos="0 0 0">
+            <geom name="bone_4_7"
+                  type="capsule" size="0.012"
+                  fromto="0.1020 0.0169 -0.6899  0.0884 -0.0268 -1.0879"
+                  rgba="0.8 0.8 0.8 0.9"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Bone: right_knee -> right_ankle -->
+        <body name="bone_right_knee_right_ankle" pos="0 0 0">
+            <geom name="bone_5_8"
+                  type="capsule" size="0.012"
+                  fromto="-0.1078 0.0150 -0.6964  -0.0920 -0.0273 -1.0948"
+                  rgba="0.8 0.8 0.8 0.9"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Bone: spine2 -> spine3 -->
+        <body name="bone_spine2_spine3" pos="0 0 0">
+            <geom name="bone_6_9"
+                  type="capsule" size="0.012"
+                  fromto="0.0012 0.0026 0.0208  0.0026 0.0280 0.0737"
+                  rgba="0.8 0.8 0.8 0.9"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Bone: left_ankle -> left_foot -->
+        <body name="bone_left_ankle_left_foot" pos="0 0 0">
+            <geom name="bone_7_10"
+                  type="capsule" size="0.012"
+                  fromto="0.0884 -0.0268 -1.0879  0.1148 0.0925 -1.1437"
+                  rgba="0.8 0.8 0.8 0.9"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Bone: right_ankle -> right_foot -->
+        <body name="bone_right_ankle_right_foot" pos="0 0 0">
+            <geom name="bone_8_11"
+                  type="capsule" size="0.012"
+                  fromto="-0.0920 -0.0273 -1.0948  -0.1174 0.0961 -1.1430"
+                  rgba="0.8 0.8 0.8 0.9"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Bone: spine3 -> neck -->
+        <body name="bone_spine3_neck" pos="0 0 0">
+            <geom name="bone_9_12"
+                  type="capsule" size="0.012"
+                  fromto="0.0026 0.0280 0.0737  -0.0002 -0.0148 0.2876"
+                  rgba="0.8 0.8 0.8 0.9"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Bone: spine3 -> left_collar -->
+        <body name="bone_spine3_left_collar" pos="0 0 0">
+            <geom name="bone_9_13"
+                  type="capsule" size="0.012"
+                  fromto="0.0026 0.0280 0.0737  0.0815 -0.0060 0.1955"
+                  rgba="0.8 0.8 0.8 0.9"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Bone: spine3 -> right_collar -->
+        <body name="bone_spine3_right_collar" pos="0 0 0">
+            <geom name="bone_9_14"
+                  type="capsule" size="0.012"
+                  fromto="0.0026 0.0280 0.0737  -0.0791 -0.0106 0.1926"
+                  rgba="0.8 0.8 0.8 0.9"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Bone: neck -> head -->
+        <body name="bone_neck_head" pos="0 0 0">
+            <geom name="bone_12_15"
+                  type="capsule" size="0.012"
+                  fromto="-0.0002 -0.0148 0.2876  0.0050 0.0365 0.3526"
+                  rgba="0.8 0.8 0.8 0.9"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Bone: left_collar -> left_shoulder -->
+        <body name="bone_left_collar_left_shoulder" pos="0 0 0">
+            <geom name="bone_13_16"
+                  type="capsule" size="0.012"
+                  fromto="0.0815 -0.0060 0.1955  0.1724 -0.0149 0.2260"
+                  rgba="0.8 0.8 0.8 0.9"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Bone: right_collar -> right_shoulder -->
+        <body name="bone_right_collar_right_shoulder" pos="0 0 0">
+            <geom name="bone_14_17"
+                  type="capsule" size="0.012"
+                  fromto="-0.0791 -0.0106 0.1926  -0.1752 -0.0197 0.2251"
+                  rgba="0.8 0.8 0.8 0.9"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Bone: left_shoulder -> left_elbow -->
+        <body name="bone_left_shoulder_left_elbow" pos="0 0 0">
+            <geom name="bone_16_18"
+                  type="capsule" size="0.012"
+                  fromto="0.1724 -0.0149 0.2260  0.4320 -0.0424 0.2132"
+                  rgba="0.8 0.8 0.8 0.9"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Bone: right_shoulder -> right_elbow -->
+        <body name="bone_right_shoulder_right_elbow" pos="0 0 0">
+            <geom name="bone_17_19"
+                  type="capsule" size="0.012"
+                  fromto="-0.1752 -0.0197 0.2251  -0.4289 -0.0411 0.2118"
+                  rgba="0.8 0.8 0.8 0.9"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Bone: left_elbow -> left_wrist -->
+        <body name="bone_left_elbow_left_wrist" pos="0 0 0">
+            <geom name="bone_18_20"
+                  type="capsule" size="0.012"
+                  fromto="0.4320 -0.0424 0.2132  0.6813 -0.0435 0.2222"
+                  rgba="0.8 0.8 0.8 0.9"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+        <!-- Bone: right_elbow -> right_wrist -->
+        <body name="bone_right_elbow_right_wrist" pos="0 0 0">
+            <geom name="bone_19_21"
+                  type="capsule" size="0.012"
+                  fromto="-0.4289 -0.0411 0.2118  -0.6842 -0.0467 0.2196"
+                  rgba="0.8 0.8 0.8 0.9"
+                  contype="0" conaffinity="0"/>
+        </body>
+
+    </worldbody>
+
+</mujoco>

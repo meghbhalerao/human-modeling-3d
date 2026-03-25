@@ -1,0 +1,227 @@
+<!-- Human model from - https://colab.research.google.com/drive/154YTdflNrLCGHZ98jPSt_TZeafrYqFR-?usp=sharing#scrollTo=NFxtQ6G12r8S -->
+<mujoco>
+    <option gravity="0 0 0" />
+    <worldbody>
+        <geom type="plane" pos="0 0 0" size="10 10 0.1" material="floor_material" />
+        <body name="pelvis" mocap="true" pos="1.2400539848490296e-16 -0.007071309722959995 0.9311913251876831" quat="-0.7069933123978012 0.012667131671581075 0.7069933123978012 -0.012667131671581075">
+            <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+            <!-- <joint type="free" name="joint_pelvis" /> -->
+            <geom type="capsule" size="0.025"
+                fromto="0.0 0.0 0.0 0.06749367713928223 -0.00638774037361145 -5.3054370284229355e-15"
+                density="1000" rgba="0.8 0.6 0.4 1" />
+            <geom type="capsule" size="0.025"
+                fromto="0.0 0.0 0.0 -0.025693297386169434 -0.00010870397090911865 -0.07750068604946136"
+                density="1000" rgba="0.8 0.6 0.4 1" />
+            <geom type="capsule" size="0.025"
+                fromto="0.0 0.0 0.0 -0.02569139003753662 -0.00010874494910240173 0.07750062644481659"
+                density="1000" rgba="0.8 0.6 0.4 1" />
+            <body name="spine_01"
+                pos="0.06749367713928223 -0.00638774037361145 -5.3054370284229355e-15"
+                quat="0.9994206427890385 2.3362404552790525e-18 1.0090234167493236e-17 -0.034034963892227064">
+                <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                <joint type="ball" name="joint_spine_01" />
+                <geom type="capsule" size="0.025"
+                    fromto="0.0 0.0 0.0 0.07251763343811035 -0.00034980475902557373 -1.5774199709026743e-14"
+                    density="1000" rgba="0.8 0.6 0.4 1" />
+                <body name="spine_02"
+                    pos="0.07251763343811035 -0.00034980475902557373 -1.5774199709026743e-14"
+                    quat="0.9997177507990976 5.392413112454937e-23 -2.2919371771182243e-22 -0.023757498546636644">
+                    <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                    <joint type="ball" name="joint_spine_02" />
+                    <geom type="capsule" size="0.025"
+                        fromto="0.0 0.0 0.0 0.06010448932647705 0.0 2.104476904969243e-14"
+                        density="1000" rgba="0.8 0.6 0.4 1" />
+                    <body name="spine_03" pos="0.06010448932647705 0.0 2.104476904969243e-14"
+                        quat="0.9998893492393578 6.442381829385969e-23 6.845677000085893e-22 -0.014875795027281036">
+                        <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                        <joint type="ball" name="joint_spine_03" />
+                        <geom type="capsule" size="0.025"
+                            fromto="0.0 0.0 0.0 0.0810236930847168 1.4901161193847656e-08 -2.8308088430859316e-14"
+                            density="1000" rgba="0.8 0.6 0.4 1" />
+                        <body name="spine_04"
+                            pos="0.0810236930847168 1.4901161193847656e-08 -2.8308088430859316e-14"
+                            quat="0.9999134362924395 6.762786830704167e-23 1.323603538731091e-22 0.01315750439276834">
+                            <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                            <joint type="ball" name="joint_spine_04" />
+                            <geom type="capsule" size="0.025"
+                                fromto="0.0 0.0 0.0 0.10014617443084717 0.0 4.948447793022559e-14"
+                                density="1000" rgba="0.8 0.6 0.4 1" />
+                            <body name="spine_05"
+                                pos="0.10014617443084717 0.0 4.948447793022559e-14"
+                                quat="0.9999988838707776 4.8984655985788956e-23 -5.997066062640126e-22 0.0014940740273561408">
+                                <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                                <joint type="ball" name="joint_spine_05" />
+                                <geom type="capsule" size="0.025"
+                                    fromto="0.0 0.0 0.0 0.04357445240020752 -0.001465722918510437 -0.023223210126161575"
+                                    density="1000" rgba="0.8 0.6 0.4 1" />
+                                <geom type="capsule" size="0.025"
+                                    fromto="0.0 0.0 0.0 0.043575406074523926 -0.0014655888080596924 0.023223280906677246"
+                                    density="1000" rgba="0.8 0.6 0.4 1" />
+                                <geom type="capsule" size="0.025"
+                                    fromto="0.0 0.0 0.0 0.11313807964324951 0.001528620719909668 -2.3156799963891875e-14"
+                                    density="1000" rgba="0.8 0.6 0.4 1" />
+                                <body name="clavicle_l"
+                                    pos="0.04357445240020752 -0.001465722918510437 -0.023223210126161575"
+                                    quat="0.6829487044068947 -0.04647542493978803 0.7289309223867121 0.008989572518595777">
+                                    <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                                    <joint type="ball" name="joint_clavicle_l" />
+                                    <geom type="capsule" size="0.025"
+                                        fromto="0.0 0.0 0.0 0.1551109254360199 0.0 1.1920928955078125e-07"
+                                        density="1000" rgba="0.8 0.6 0.4 1" />
+                                    <body name="upperarm_l"
+                                        pos="0.1551109254360199 0.0 1.1920928955078125e-07"
+                                        quat="0.8436629524964866 -0.030462773804957186 0.5359774300853403 0.005747733129975311">
+                                        <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                                        <joint type="ball" name="joint_upperarm_l" />
+                                        <geom type="capsule" size="0.025"
+                                            fromto="0.0 0.0 0.0 0.2665136456489563 0.0 0.0"
+                                            density="1000" rgba="0.8 0.6 0.4 1" />
+                                        <body name="lowerarm_l" pos="0.2665136456489563 0.0 0.0"
+                                            quat="0.9686191585618291 -0.039058773569420266 0.009890000242635354 0.24526215723064054">
+                                            <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                                            <joint type="ball" name="joint_lowerarm_l" />
+                                            <geom type="capsule" size="0.025"
+                                                fromto="0.0 0.0 0.0 0.223491370677948 0.0 0.0"
+                                                density="1000" rgba="0.8 0.6 0.4 1" />
+                                            <body name="hand_l" pos="0.223491370677948 0.0 0.0"
+                                                quat="0.6975021136747361 0.7081025972512259 0.050679966201636166 -0.09753488714887959">
+                                                <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                                                <joint type="ball" name="joint_hand_l" />
+                                            </body>
+                                        </body>
+                                    </body>
+                                </body>
+                                <body name="clavicle_r"
+                                    pos="0.043575406074523926 -0.0014655888080596924 0.023223280906677246"
+                                    quat="0.008989572518595779 0.7289309223867122 0.04647542493978804 -0.6829487044068948">
+                                    <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                                    <joint type="ball" name="joint_clavicle_r" />
+                                    <geom type="capsule" size="0.025"
+                                        fromto="0.0 0.0 0.0 -0.15511080622673035 -1.043081283569336e-07 -1.1920928955078125e-07"
+                                        density="1000" rgba="0.8 0.6 0.4 1" />
+                                    <body name="upperarm_r"
+                                        pos="-0.15511080622673035 -1.043081283569336e-07 -1.1920928955078125e-07"
+                                        quat="0.8436629524964866 -0.030462773804957186 0.5359774300853403 0.005747733129975311">
+                                        <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                                        <joint type="ball" name="joint_upperarm_r" />
+                                        <geom type="capsule" size="0.025"
+                                            fromto="0.0 0.0 0.0 -0.26651448011398315 1.4901161193847656e-08 0.0"
+                                            density="1000" rgba="0.8 0.6 0.4 1" />
+                                        <body name="lowerarm_r"
+                                            pos="-0.26651448011398315 1.4901161193847656e-08 0.0"
+                                            quat="0.9686191585618291 -0.039058773569420266 0.009890000242635354 0.24526215723064054">
+                                            <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                                            <joint type="ball" name="joint_lowerarm_r" />
+                                            <geom type="capsule" size="0.025"
+                                                fromto="0.0 0.0 0.0 -0.22349244356155396 5.960464477539063e-08 5.960464477539063e-08"
+                                                density="1000" rgba="0.8 0.6 0.4 1" />
+                                            <body name="hand_r"
+                                                pos="-0.22349244356155396 5.960464477539063e-08 5.960464477539063e-08"
+                                                quat="0.6975021136747361 0.7081025972512259 0.050679966201636166 -0.09753488714887959">
+                                                <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                                                <joint type="ball" name="joint_hand_r" />
+                                            </body>
+                                        </body>
+                                    </body>
+                                </body>
+                                <body name="neck_01"
+                                    pos="0.11313807964324951 0.001528620719909668 -2.3156799963891875e-14"
+                                    quat="0.979739387686268 -7.759519592020889e-23 -2.5835163497133134e-22 0.20027663921720062">
+                                    <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                                    <joint type="ball" name="joint_neck_01" />
+                                    <geom type="capsule" size="0.025"
+                                        fromto="0.0 0.0 0.0 0.04562675952911377 0.0 -4.467488933044411e-16"
+                                        density="1000" rgba="0.8 0.6 0.4 1" />
+                                    <body name="neck_02"
+                                        pos="0.04562675952911377 0.0 -4.467488933044411e-16"
+                                        quat="0.9987275844696399 -2.976467671374415e-22 -1.0526860272186105e-21 -0.050430268881280355">
+                                        <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                                        <joint type="ball" name="joint_neck_02" />
+                                        <geom type="capsule" size="0.025"
+                                            fromto="0.0 0.0 0.0 0.05391383171081543 0.0 -1.1647306535721548e-15"
+                                            density="1000" rgba="0.8 0.6 0.4 1" />
+                                        <body name="head"
+                                            pos="0.05391383171081543 0.0 -1.1647306535721548e-15"
+                                            quat="0.9933705878621503 1.1486719478815802e-22 5.2460160773161134e-23 -0.11495597057311105">
+                                            <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                                            <joint type="ball" name="joint_head" />
+                                        </body>
+                                    </body>
+                                </body>
+                            </body>
+                        </body>
+                    </body>
+                </body>
+            </body>
+            <body name="thigh_l"
+                pos="-0.025693297386169434 -0.00010870397090911865 -0.07750068604946136"
+                quat="0.9982444406463985 -0.0012370699081630204 -0.0571613282515377 -0.015462500739568058">
+                <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                <joint type="ball" name="joint_thigh_l" />
+                <geom type="capsule" size="0.025"
+                    fromto="0.0 0.0 0.0 -0.39048439264297485 9.313225746154785e-10 0.0"
+                    density="1000" rgba="0.8 0.6 0.4 1" />
+                <body name="calf_l" pos="-0.39048439264297485 9.313225746154785e-10 0.0"
+                    quat="0.9991078205558419 -0.0006403708434938144 0.01606467134332963 0.03905226195714184">
+                    <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                    <joint type="ball" name="joint_calf_l" />
+                    <geom type="capsule" size="0.025"
+                        fromto="0.0 0.0 0.0 -0.42561033368110657 0.0010773949325084686 0.004291892051696777"
+                        density="1000" rgba="0.8 0.6 0.4 1" />
+                    <body name="foot_l"
+                        pos="-0.42561033368110657 0.0010773949325084686 0.004291892051696777"
+                        quat="0.997500889014535 -0.04178496437378156 0.045505050896279806 -0.03428240817709532">
+                        <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                        <joint type="ball" name="joint_foot_l" />
+                        <geom type="capsule" size="0.025"
+                            fromto="0.0 0.0 0.0 -0.06159850209951401 0.13826413452625275 0.006806045770645142"
+                            density="1000" rgba="0.8 0.6 0.4 1" />
+                        <body name="ball_l"
+                            pos="-0.06159850209951401 0.13826413452625275 0.006806045770645142"
+                            quat="0.7079318965314102 -6.0294361177534856e-05 6.043667739381551e-05 0.7062806967385125">
+                            <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                            <joint type="ball" name="joint_ball_l" />
+                        </body>
+                    </body>
+                </body>
+            </body>
+            <body name="thigh_r"
+                pos="-0.02569139003753662 -0.00010874494910240173 0.07750062644481659"
+                quat="0.015462500739568058 0.0571613282515377 -0.0012370699081630204 0.9982444406463985">
+                <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                <joint type="ball" name="joint_thigh_r" />
+                <geom type="capsule" size="0.025"
+                    fromto="0.0 0.0 0.0 0.39048659801483154 -2.2351741790771484e-08 0.0"
+                    density="1000" rgba="0.8 0.6 0.4 1" />
+                <body name="calf_r" pos="0.39048659801483154 -2.2351741790771484e-08 0.0"
+                    quat="0.9991078205558419 -0.0006403708434938144 0.01606467134332963 0.03905226195714184">
+                    <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                    <joint type="ball" name="joint_calf_r" />
+                    <geom type="capsule" size="0.025"
+                        fromto="0.0 0.0 0.0 0.42561158537864685 -0.0010772906243801117 -0.004292041063308716"
+                        density="1000" rgba="0.8 0.6 0.4 1" />
+                    <body name="foot_r"
+                        pos="0.42561158537864685 -0.0010772906243801117 -0.004292041063308716"
+                        quat="0.997500889014535 -0.04178496437378156 0.045505050896279806 -0.03428240817709532">
+                        <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                        <joint type="ball" name="joint_foot_r" />
+                        <geom type="capsule" size="0.025"
+                            fromto="0.0 0.0 0.0 0.06159842759370804 -0.13826420903205872 -0.006806075572967529"
+                            density="1000" rgba="0.8 0.6 0.4 1" />
+                        <body name="ball_r"
+                            pos="0.06159842759370804 -0.13826420903205872 -0.006806075572967529"
+                            quat="0.7079318965314102 -6.0294361177534856e-05 6.043667739381551e-05 0.7062806967385125">
+                            <geom type="sphere" size="0.05" density="1000" rgba="0.8 0.6 0.4 1" />
+                            <joint type="ball" name="joint_ball_r" />
+                        </body>
+                    </body>
+                </body>
+            </body>
+        </body>
+    </worldbody>
+    <asset>
+        <texture type="2d" name="checkerboard" builtin="checker" rgb1="0 0 0" rgb2="1 1 1"
+            width="256" height="256" />
+        <material name="floor_material" texture="checkerboard" texrepeat="10 10" rgba="1 1 1 1" />
+    </asset>
+</mujoco>

@@ -111,9 +111,7 @@ class MotionGenerator:
         # Recover XYZ *positions* from HumanML3D vector representation
         if self.model.data_rep == 'hml_vec':
             n_joints = 22 if sample.shape[1] == 263 else 21
-            sample = self.data.dataset.t2m_dataset.inv_transform(
-                sample.cpu().permute(0, 2, 3, 1)
-            ).float()
+            # sample = self.data.dataset.t2m_dataset.inv_transform(sample.cpu().permute(0, 2, 3, 1)).float()
             sample = recover_from_ric(sample, n_joints)
             sample = sample.view(-1, *sample.shape[2:]).permute(0, 2, 3, 1)
 

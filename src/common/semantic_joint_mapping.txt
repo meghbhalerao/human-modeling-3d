@@ -1,0 +1,96 @@
+# this file provides a mapping from a number to a joint name. the purpose of this is to have a semantic mapping, so that this will serve as a "template" to build a human biomechanical skeletal structure and keep things consistent, i.e. one can easily look at this order, this is more of an order, so people can look at this order, so that this order can be kept consistent when making a vector of human motion representation - 
+
+
+ 0: left_hip       → L_Hip  
+ 1: right_hip      → R_Hip   
+ 2: spine1         → Torso  
+ 3: left_knee      → L_Knee  
+ 4: right_knee     → R_Knee  
+ 5: spine2         → Spine   
+ 6: left_ankle     → L_Ankle 
+ 7: right_ankle    → R_Ankle 
+ 8: spine3         → Chest   
+ 9: left_foot      → L_Toe   
+ 10: right_foot    → R_Toe   
+ 11: neck          → Neck    
+ 12: left_collar   → L_Thorax
+ 13: right_collar  → R_Thorax
+ 14: head          → Head    
+ 15: left_shoulder → L_Shoulder
+ 16: right_shoulder→ R_Shoulder
+ 17: left_elbow    → L_Elbow 
+ 18: right_elbow   → R_Elbow 
+ 19: left_wrist    → L_Wrist (qpos 48,49,50)
+ 20: right_wrist   → R_Wrist 
+
+
+
+ # from motion diffusion model - 
+ JOINT_MAP = {
+'MidHip': 0,
+'LHip': 1, 'LKnee': 4, 'LAnkle': 7, 'LFoot': 10,
+'RHip': 2, 'RKnee': 5, 'RAnkle': 8, 'RFoot': 11,
+'LShoulder': 16, 'LElbow': 18, 'LWrist': 20, 'LHand': 22, 
+'RShoulder': 17, 'RElbow': 19, 'RWrist': 21, 'RHand': 23,
+'spine1': 3, 'spine2': 6, 'spine3': 9,  'Neck': 12, 'Head': 15,
+'LCollar':13, 'Rcollar' :14, 
+'Nose':24, 'REye':26,  'LEye':26,  'REar':27,  'LEar':28, 
+'LHeel': 31, 'RHeel': 34,
+'OP RShoulder': 17, 'OP LShoulder': 16,
+'OP RHip': 2, 'OP LHip': 1,
+'OP Neck': 12,
+}
+
+full_smpl_idx = range(24)
+key_smpl_idx = [0, 1, 4, 7,  2, 5, 8,  17, 19, 21,  16, 18, 20]
+
+
+amass_idx =       range(22)
+amass_smpl_idx =  range(22)
+
+Some more on the 263 dimensional representation of the human motion - 
+root data shape: (199, 4) - 
+ric_data shape: (200, 63) - ric stands for rotation invariant coordinates shape, this is the xyz positions.
+rot_data shape: (200, 126) = njoints x 6 - using 6 dimensional rotational representations
+local_vel shape: (199, 66) - njoint x 3 dimensional velocity
+feet_l shape: (199, 2)
+feet_r shape: (199, 2)
+concatenated data shape: (199, 263)
+
+
+t2m_kinematic_chain = [[0, 2, 5, 8, 11], [0, 1, 4, 7, 10], [0, 3, 6, 9, 12, 15], [9, 14, 17, 19, 21], [9, 13, 16, 18, 20]]
+
+AMASS_JOINT_MAP = {
+'MidHip': 0,
+'LHip': 1, 'LKnee': 4, 'LAnkle': 7, 'LFoot': 10,
+'RHip': 2, 'RKnee': 5, 'RAnkle': 8, 'RFoot': 11,
+'LShoulder': 16, 'LElbow': 18, 'LWrist': 20,  
+'RShoulder': 17, 'RElbow': 19, 'RWrist': 21, 
+'spine1': 3, 'spine2': 6, 'spine3': 9,  'Neck': 12, 'Head': 15,
+'LCollar':13, 'Rcollar' :14, 
+}
+
+t2m_raw_offsets = np.array([
+    [0,0,0],   # 0
+    [1,0,0],   # 1
+    [-1,0,0],  # 2
+    [0,1,0],   # 3
+    [0,-1,0],  # 4
+    [0,-1,0],  # 5
+    [0,1,0],   # 6
+    [0,-1,0],  # 7
+    [0,-1,0],  # 8
+    [0,1,0],   # 9
+    [0,0,1],   # 10
+    [0,0,1],   # 11
+    [0,1,0],   # 12
+    [1,0,0],   # 13
+    [-1,0,0],  # 14
+    [0,0,1],   # 15
+    [0,-1,0],  # 16
+    [0,-1,0],  # 17
+    [0,-1,0],  # 18
+    [0,-1,0],  # 19
+    [0,-1,0],  # 20
+    [0,-1,0],  # 21
+])

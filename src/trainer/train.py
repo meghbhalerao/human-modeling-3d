@@ -58,7 +58,6 @@ def main(cfg: DictConfig):
         device=dist_utils.dev()
     )
 
-
     print("creating model and diffusion...")
     # Passing the hierarchical 'cfg' object. 
     # You will need to update create_model_and_diffusion to handle cfg.model.target, etc.

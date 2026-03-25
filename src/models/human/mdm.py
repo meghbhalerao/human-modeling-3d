@@ -171,11 +171,11 @@ class MDM(nn.Module):
     
     def forward(self, x, timesteps, y = None):
         bs, njoints, nfeats, nframes = x.shape
+
         time_emb = self.embed_timesteps(timesteps)
 
         if 'target_cond' in y.keys():
             time_emb += self.mask_cond(self.embed_targe_cond(y['target_cond'], y['target_joint_names'], y['is_heading'])[None], force_mask = y.get('target_uncond', False))
-
 
         if self.is_prefix_comp:
             # x = torch.cat([y['prefix'], x], dim = -1) - TEMP REMOVING THIS
@@ -216,8 +216,9 @@ class MDM(nn.Module):
             emb_gru = emb_gru.reshape(bs, self.latent_dim, 1, nframes)  #[bs, d, 1, #frames]
             x = torch.cat((x_reshaped, emb_gru), axis=1)  #[bs, d+joints*feat, 1, #frames]
 
-
+  
         x = self.input_process(x)
+  
         frames_mask = None
         is_valid_mask = y['mask'].shape[-1] > 1
         if self.mask_frames and is_valid_mask:
@@ -228,19 +229,20 @@ class MDM(nn.Module):
                 frames_mask = torch.cat([step_mask, frames_mask], dim = 1)
 
         emb_num, bs, emb_dim = emb.shape
-        emb = emb.view(bs, emb_num, emb_dim)
-
-        if self.arch == 'trans_enc':
-            xseq = torch.cat((emb.view(bs, emb_num, emb_dim), x), axis = 1)
-            xseq = self.sequential_pos_encoder(xseq)
-            output = self.seqTransEncoder(xseq, src_key_padding_mask = frames_mask)[:,1:,:]
-
         
+        if self.arch == 'trans_enc':
+            xseq = torch.cat((emb.permute(1, 2, 0), x), axis=2)  # [emb_num, bs, emb_dim] -> [bs, emb_dim, emb_num]
+            bs, nfeats, nframes = xseq.shape
+            xseq = self.sequential_pos_encoder(xseq.permute(2, 0, 1))  # [bs, nfeats, nframes] -> [nframes, bs, nfeats]
+            output = self.seqTransEncoder(xseq, src_key_padding_mask = frames_mask)
+            output = output[1:,:,:]
+
         elif self.arch == 'trans_dec':
             if self.emb_trans_dec:
                 xseq = torch.cat((time_emb, x), axis = 0)
             else:
                 xseq = x
+
             xseq = self.sequence_pos_encoder(xseq)
 
             if self.text_encoder_type == 'clip':
@@ -261,10 +263,10 @@ class MDM(nn.Module):
         if self.is_prefix_comp:
             output = output[self.context_len:]
             y['mask'] = y['mask'][..., self.context_len:]
-        
+
         output = self.output_process(output)
-        nframes, njoints, nfeats, bs = output.shape
-        output = output.contiguous().view(bs, njoints, nfeats, nframes)
+        nframes, bs, njoints = output.shape
+        output = output.permute(1, 2, 0).unsqueeze(2)
         return output
     
     def _apply(self, fn):
@@ -288,6 +290,9 @@ class PositionalEncoding(nn.Module):
         self.register_buffer('pe', pe)
 
     def forward(self, x):
+        """
+        Expects input x to be of dimensions - nframes, bs, nfeat
+        """
         x = x + self.pe[:x.shape[0], :]
         return self.dropout(x)
     
@@ -317,9 +322,9 @@ class InputProcess(nn.Module):
     
     def forward(self, x):
         bs, njoints, nfeats, nframes = x.shape
-        # x = x.permute((3, 0, 1, 2)).reshape(nframes, bs, njoints * nfeats)
-        if self.data_rep in ['rot6d', 'xyz', 'hml_vec']:
-            x = self.poseEmbedding(x.view(bs, nframes, njoints * nfeats))
+        if self.data_rep in ['rot6d', 'xyz', 'hml_vec', 'modiff_vec']:
+            x = self.poseEmbedding(x.permute(0, 3, 1, 2).contiguous().view(bs, nframes, njoints * nfeats))            
+            x = x.permute(0, 2, 1)
             return x
         elif self.data_rep == 'rot_vel':
             first_pose = x[[0]]
@@ -328,7 +333,7 @@ class InputProcess(nn.Module):
             vel = self.velEmbedding(vel)
             return torch.cat((first_pose, vel), axis = 0)
         else:
-            raise ValueError
+            raise ValueError #, f"self.data_rep {self.data_rep} not implemented yet"
         
 
 class OutputProcess(nn.Module):
@@ -342,11 +347,13 @@ class OutputProcess(nn.Module):
         self.poseFinal = nn.Linear(self.latent_dim, self.input_feats)
         if self.data_rep == 'rot_vel':
             self.velFinal = nn.Linear(self.latent_dim, self.input_feats)
-
     
     def forward(self, output):
-        nframes, bs, d = output.shape
+
         if self.data_rep in ['rot6d', 'xyz', 'hml_vec']:
+            nframes, bs, d = output.shape
+            output  = self.poseFinal(output)
+        elif self.data_rep in ['modiff_vec']:
             output  = self.poseFinal(output)
         elif self.data_rep == 'rot_vel':
             first_pose = output[[0]]
@@ -356,8 +363,6 @@ class OutputProcess(nn.Module):
             output = torch.cat((first_pose, vel), axis = 0)
         else:
             raise ValueError
-        output = output.reshape(nframes, bs, self.njoints, self.nfeats)
-        output = output.permute(1, 2, 3, 0)
         return output
     
 class EmbedAction(nn.Module):

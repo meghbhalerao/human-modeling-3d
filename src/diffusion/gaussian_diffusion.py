@@ -1311,7 +1311,7 @@ class GaussianDiffusion:
                 terms["loss"] *= self.num_timesteps
         elif self.loss_type == LossType.MSE or self.loss_type == LossType.RESCALED_MSE:
             model_output = model(x_t, self._scale_timesteps(t), **model_kwargs)
-  
+
             if self.model_var_type in [
                 ModelVarType.LEARNED,
                 ModelVarType.LEARNED_RANGE,
@@ -1342,12 +1342,14 @@ class GaussianDiffusion:
                 ModelMeanType.EPSILON: noise,
             }[self.model_mean_type]
 
-            bs, njoints, nfeats, nframes = model_output.shape
-            target = target.view(bs, njoints, nfeats, nframes)
-            x_start = x_start.view(bs, njoints, nfeats, nframes)
-            
-            assert model_output.shape == target.shape == x_start.shape  # [bs, njoints, nfeats, nframes]
+            # print(model_output.shape)
+            # sys.exit()
+            # bs, njoints, nfeats, nframes = model_output.shape
+            # target = target.view(bs, njoints, nfeats, nframes)
+            # x_start = x_start.view(bs, njoints, nfeats, nframes)
 
+            assert model_output.shape == target.shape == x_start.shape, f"Got model output shape {model_output.shape}, target shape {target.shape}, x start {x_start.shape}"  # [bs, njoints, nfeats, nframes]
+    
             terms["rot_mse"] = self.masked_l2(target, model_output, mask) # mean_flat(rot_mse)
 
             target_xyz, model_output_xyz = None, None

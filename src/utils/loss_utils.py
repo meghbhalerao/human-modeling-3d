@@ -32,6 +32,7 @@ def masked_l2(a, b, mask, loss_fn=diff_l2, epsilon=1e-8, entries_norm=True):
     return mse_loss_val
 
 
+
 def masked_goal_l2(pred_goal, ref_goal, cond, all_goal_joint_names):
     all_goal_joint_names_w_traj = np.append(all_goal_joint_names, 'traj')
     target_joint_idx = [[np.where(all_goal_joint_names_w_traj == j)[0][0] for j in sample_joints] for sample_joints in cond['target_joint_names']]

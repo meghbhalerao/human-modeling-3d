@@ -2,11 +2,11 @@ defaults:
   - _self_
 
 experiment:
-  name: "my_experiment"
+  name: dit-walk
   seed: 10
   save_dir: "save/${experiment.name}"
   overwrite: false
-  train_platform_type: "NoPlatform"
+  train_platform_type: "WandBPlatform"
 
 model:
   arch: trans_enc
