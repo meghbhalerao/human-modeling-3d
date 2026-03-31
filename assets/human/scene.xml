@@ -100,9 +100,40 @@
         <camera name="side_cam"  pos="3 0 0"  xyaxes="0 0 -1 0 1 0"/>
         <camera name="front_cam" pos="0 0 3"  xyaxes="1 0 0 0 1 0"/>
 
+
+        <!-- ===== TABLE ===== -->
+        <!-- Table top: ~0.85m high, 0.8m x 0.5m surface -->
+        <body name="table" pos="1.2 0 0">
+            <!-- Table top -->
+            <geom name="table_top" type="box"
+                pos="0 0 0.85" size="0.4 0.25 0.025"
+                rgba="0.55 0.35 0.2 1" contype="0" conaffinity="0"/>
+            <!-- 4 legs -->
+            <geom name="table_leg1" type="box"
+                pos="0.35 0.2 0.4125" size="0.025 0.025 0.4125"
+                rgba="0.55 0.35 0.2 1" contype="0" conaffinity="0"/>
+            <geom name="table_leg2" type="box"
+                pos="-0.35 0.2 0.4125" size="0.025 0.025 0.4125"
+                rgba="0.55 0.35 0.2 1" contype="0" conaffinity="0"/>
+            <geom name="table_leg3" type="box"
+                pos="0.35 -0.2 0.4125" size="0.025 0.025 0.4125"
+                rgba="0.55 0.35 0.2 1" contype="0" conaffinity="0"/>
+            <geom name="table_leg4" type="box"
+                pos="-0.35 -0.2 0.4125" size="0.025 0.025 0.4125"
+                rgba="0.55 0.35 0.2 1" contype="0" conaffinity="0"/>
+        </body>
+
+        <body name="box_on_table" mocap="true" pos="1.2 0 0.975">
+            <geom name="box" type="box"
+                size="0.08 0.08 0.08"
+                rgba="0.2 0.4 0.8 1" contype="0" conaffinity="0"/>
+        </body>
+
+
+
         <!-- ===== HUMAN (merged from human.xml) ===== -->
         <body name="object" mocap="true" pos="0 0 0">
-            <body name="Pelvis" pos="0.0 0.0 1.0" quat="0.707 0.707 0.0000 0.0000">
+            <body name="Pelvis" pos="0.0 0.0 1.2" quat="0.707 0.707 0.0000 0.0000">
             <!-- <body name="Pelvis" pos="0.0 0.0 1.5" quat="1.000 0.0000 0.0000 0.0000"> -->
                 <inertial pos="0 0 0" mass="1" diaginertia="1 1 1" />
                 <site name="Pelvis" pos="0 0 0" size="0.1 0.1 0.1" rgba="0 0 0 0" type="sphere" group="1"/>

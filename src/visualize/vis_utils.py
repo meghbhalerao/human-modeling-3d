@@ -105,15 +105,13 @@ class npy2obj:
 
     def replay_loop(self, model, mjdata, viewer, r_pos, r_rot_quat, joint_euler):
         r_pos = r_pos.squeeze().transpose(1, 0)
-        # Position: Y-up → Z-up  (x, y, z) → (x, -z, y)
         r_pos = r_pos[:, [0, 2, 1]]
         r_pos[:, 1] = -r_pos[:, 1]
 
-        # Rotation: Y-up → Z-up via conjugation by R_x(90°)
         R_coord = Rotation.from_euler('X', 90, degrees=True)
         R_smpl = Rotation.from_matrix(r_rot_quat.squeeze())
         R_mocap = R_coord * R_smpl * R_coord.inv()
-        r_rot_quat = R_mocap.as_quat()[:, [3, 0, 1, 2]]  # scipy (x,y,z,w) → mujoco (w,x,y,z)
+        r_rot_quat = R_mocap.as_quat()[:, [3, 0, 1, 2]]
 
         joint_euler = joint_euler.squeeze()
 
@@ -122,19 +120,39 @@ class npy2obj:
         loop = self.cfg.get("loop", True)
         frame_duration = 1.0 / fps
         mocap_t = 0
+        # Replace the hardcoded indices with name lookups
+        human_body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "object")
+        box_body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "box_on_table")
+
+        human_mocap_idx = model.body_mocapid[human_body_id]
+        box_mocap_idx = model.body_mocapid[box_body_id]
+
+        print(f"Human mocap index: {human_mocap_idx}, Box mocap index: {box_mocap_idx}")
+        # Get the site ID for R_Hand
+        rhand_site_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, "R_Hand")
 
         while viewer.is_alive:
             frame_start = time.time()
 
-            mjdata.mocap_pos[0]  = r_pos[mocap_t]
-            mjdata.mocap_quat[0] = r_rot_quat[mocap_t]
+            # Set human pose
+            mjdata.mocap_pos[human_mocap_idx]  = r_pos[mocap_t]
+            mjdata.mocap_quat[human_mocap_idx] = r_rot_quat[mocap_t]
 
             for smpl_j, q0 in SMPL_TO_QPOS.items():
                 rot_idx = smpl_j - 1
                 if rot_idx < joint_euler.shape[1]:
                     mjdata.qpos[q0:q0 + 3] = joint_euler[mocap_t, rot_idx]
 
+            # First forward pass: computes site positions from human pose
             mujoco.mj_forward(model, mjdata)
+
+            # Read R_Hand world position and snap box to it
+            rhand_pos = mjdata.site_xpos[rhand_site_id].copy()
+            mjdata.mocap_pos[box_mocap_idx] = rhand_pos
+
+            # Second forward pass: updates box rendering position
+            mujoco.mj_forward(model, mjdata)
+
             viewer.render()
 
             mocap_t += 1
