@@ -17,7 +17,10 @@
 
     <!-- <option timestep="0.0333" gravity="0 -9.81 0"/> -->
     <!-- <option timestep="0.0333" gravity="0 0 -9.81 "/> -->
-    <option timestep="0.0333" gravity="0 0 0"/>
+    <!-- <option timestep="0.0333" gravity="0 0 0"/> -->
+    <option timestep="0.0333" gravity="0 0 0">
+    <flag contact="disable"/>
+    </option>
 
     <!--
         timestep = 1/30 = 30fps
@@ -48,7 +51,7 @@
                  width="100" height="100"/>
 
         <!-- Human meshes and materials (from human.xml) -->
-        <mesh name="Pelvis" file="meshes/Pelvis.stl"/>
+    <mesh name="Pelvis" file="meshes/Pelvis.stl"/>
     <mesh name="L_Hip" file="meshes/L_Hip.stl"/>
     <mesh name="R_Hip" file="meshes/R_Hip.stl"/>
     <mesh name="Torso" file="meshes/Torso.stl"/>
@@ -91,7 +94,7 @@
         <geom name="floor" type="plane"
               pos="0 0 0" size="5 5 0.1"
               material="MatPlane"
-              conaffinity="1" condim="3" contype="1"/>
+              conaffinity="0" condim="3" contype="1"/>
 
         <!-- ===== CAMERAS ===== -->
         <camera name="side_cam"  pos="3 0 0"  xyaxes="0 0 -1 0 1 0"/>
@@ -99,7 +102,8 @@
 
         <!-- ===== HUMAN (merged from human.xml) ===== -->
         <body name="object" mocap="true" pos="0 0 0">
-            <body name="Pelvis" pos="0.0 0.0 2" quat="0.707 0.707 0.0000 0.0000">
+            <body name="Pelvis" pos="0.0 0.0 1.0" quat="0.707 0.707 0.0000 0.0000">
+            <!-- <body name="Pelvis" pos="0.0 0.0 1.5" quat="1.000 0.0000 0.0000 0.0000"> -->
                 <inertial pos="0 0 0" mass="1" diaginertia="1 1 1" />
                 <site name="Pelvis" pos="0 0 0" size="0.1 0.1 0.1" rgba="0 0 0 0" type="sphere" group="1"/>
                 <geom group="0" name="Pelvis_collsion" type="mesh" mesh="Pelvis" contype="0" conaffinity="1"/>

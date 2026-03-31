@@ -1,1 +1,0 @@
-python -m visualize.render_mesh input_path=/home/mb230/projects/human-modeling-3d/data/modiff-2022-samp-from-text/samples_humanml_trans_dec_512_bert_000200000_seed10_a_person_is_walking_forward_and_reaching_his_right_hand_out_and_then_walks_backwards/samples_00_to_02.mp4 save_video=true

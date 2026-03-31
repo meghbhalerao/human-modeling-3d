@@ -35,10 +35,29 @@ from data.humanml.common.quaternion import cont6d_to_matrix
 
 
 SMPL_TO_QPOS = {
-    1: 0,   2: 12,  3: 24,  4: 3,   5: 15,  6: 27,
-    7: 6,   8: 18,  9: 30, 10: 9,  11: 21, 12: 33,
-    13: 39, 14: 54, 15: 36, 16: 42, 17: 57,
-    18: 45, 19: 60, 20: 48, 21: 63,
+    1:  0,   # L_Hip
+    4:  3,   # L_Knee
+    7:  6,   # L_Ankle
+    10: 9,   # L_Toe
+    2:  12,  # R_Hip
+    5:  15,  # R_Knee
+    8:  18,  # R_Ankle
+    11: 21,  # R_Toe
+    3:  24,  # Torso
+    6:  27,  # Spine
+    9:  30,  # Chest
+    12: 33,  # Neck
+    15: 36,  # Head
+    13: 39,  # L_Thorax
+    16: 42,  # L_Shoulder
+    18: 45,  # L_Elbow
+    20: 48,  # L_Wrist
+    22: 51,  # L_Hand
+    14: 54,  # R_Thorax
+    17: 57,  # R_Shoulder
+    19: 60,  # R_Elbow
+    21: 63,  # R_Wrist
+    23: 66,  # R_Hand
 }
 
 def precompute_joint_euler(joint_rot6d: torch.Tensor) -> np.ndarray:
@@ -146,7 +165,7 @@ def main(cfg: DictConfig):
             # Matches the z→y→x hinge declaration order in scene.xml.
             for smpl_j in range(1, 22):             # SMPL joints 1–21
                 q0 = SMPL_TO_QPOS[smpl_j]
-                mjdata.qpos[q0:q0 + 3] = joint_euler[t, smpl_j - 1] * np.array([1,1,1])
+                mjdata.qpos[q0:q0 + 3] = joint_euler[t, smpl_j - 1] 
 
             mujoco.mj_step(model, mjdata)
             viewer.render()

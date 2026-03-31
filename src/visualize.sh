@@ -1,0 +1,1 @@
+python -m visualize.render_mesh input_path=\"/home/mb230/projects/human-modeling-3d/data/modiff-2022-samp-from-text/samples_humanml_trans_dec_512_bert_000600000_seed10_walk_forward_turn_around,_spin,_and_walk_backwards/samples_00_to_02.mp4\" replay_mujoco=true

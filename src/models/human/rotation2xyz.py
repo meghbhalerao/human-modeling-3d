@@ -1,7 +1,8 @@
 import torch
 import utils.rotation_conversions as geometry
 import sys
-
+import numpy as np
+import os
 from models.human.smpl import SMPL, JOINTSTYPE_ROOT
 
 JOINTSTYPES = ["a2m", "a2mpl", "smpl", "vibe", "vertices"]
@@ -12,7 +13,7 @@ class Rotation2xyz:
         self.dataset = dataset
         self.smpl_model = SMPL().eval().to(device)
 
-    def __call__(self, x, mask, pose_rep, translation, glob, jointstype, vertstrans, betas = None, beta = 0, glob_rot = None, get_rotations_back = False, njoints_body = 24, **kwargs):
+    def __call__(self, x, mask, pose_rep, translation, glob, jointstype, vertstrans, betas = None, beta = 0, glob_rot = None, get_rotations_back = True, njoints_body = 24, **kwargs):
         if pose_rep == 'xyz':
             return x
         
@@ -29,14 +30,14 @@ class Rotation2xyz:
         # if translation:
         #     # x_translations = x[:, 0:3, :, :]
         #     # x_rotations = x[:, :-3, :, :]
+        print("Shape of motion vector is", x.shape)
         if translation:
             x_translations = x[:, -1:, :3, :]   # index 24, xyz only -> [1, 1, 3, 120]
             x_rotations = x[:, :-1, :, :]    
         else:
             x_rotations = x
-
         # x_rotations = x_rotations.permute(0, 3, 1, 2)
-
+        
         nsamples , njoints, feats, time  = x_rotations.shape
         if pose_rep == 'rotvec':
             rotations = geometry.axis_angle_to_matrix(x_rotations[mask])
@@ -53,6 +54,9 @@ class Rotation2xyz:
             rotations = geometry.rotation_6d_to_matrix(x_rotations)           
         else:
             raise NotImplementedError(f"Pose representation {pose_rep} is not defined!")
+
+        print("Shape of converted rotations is", rotations.shape)
+
 
         if not glob:
             global_orient = torch.tensor(glob_rot, device = x.device)
@@ -97,6 +101,6 @@ class Rotation2xyz:
             x_xyz = x_xyz + x_translations#.squeeze(2)[:, None, :, :]
 
         if get_rotations_back:
-            return x_xyz, rotations, global_orient
+            return x_xyz, rotations, x_translations, global_orient
         else:
             return x_xyz

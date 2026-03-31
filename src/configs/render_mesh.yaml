@@ -5,7 +5,20 @@ defaults:
 input_path: ""  # Required: must be provided via command line or override
 
 # CUDA settings
-cuda: true
-device: 0 
 save_video: false
 fps: 15
+
+source: diffusion
+
+scene_xml: ~/projects/human-modeling-3d/assets/human/scene.xml
+
+motion_file: ~/projects/human-modeling-3d/data/modiff-2022-samp-from-text/samples_humanml_trans_dec_512_bert_000600000_seed10_a_person_is_walking_forward_and_picking_something_from_the_ground_with_one_hand/results.pkl
+
+mean_path: ~/projects/human-modeling-3d/data/modiff-2022-samp-from-text/Mean.npy
+std_path:  ~/projects/human-modeling-3d/data/modiff-2022-samp-from-text/Std.npy
+
+motion_idx: 0      
+loop: true
+device: cpu      
+device_id: 0
+replay_mujoco: false
